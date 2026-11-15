@@ -38,7 +38,7 @@ ADR-050：使用官方 Sparkle，替代手写下载/替换逻辑。固定依赖�
 - UI：主浮窗全部状态及四页设置的 60 张浅深截图已审阅；长模型 ID、错误和缩放正常。关于页收紧布局后另补拍浅深两张，活动窗口与布局检查通过。网格检查通过。
 - TC-050：正式构建与嵌套代码签名通过；安装包挂载后，160 个目录/文件/链接条目完全一致。3 项打包校验回归通过。最终安装包与 appcast 的 Ed25519 签名通过公钥验证。实际 Sparkle 检查能从 build 7 发现 build 8，同版本显示已是最新，篡改更新源被拒绝。
 - TC-051：README、使用、架构、开发、发布、产品与设计文档已更新，本地文档链接与差异检查通过。
-- TC-052：源码已推送；安装包发布与公开更新源读回待完成。
+- TC-052：[GitHub 源码](https://github.com/yangbo-s/TrueL)与 [v0.3.0 安装包](https://github.com/yangbo-s/TrueL/releases/tag/v0.3.0)已发布。公开地址下载的 DMG、SHA256SUMS 与本地产物一致，Ed25519 验证通过；公开 HTTPS feed 与签名原文完全一致，真实 Sparkle 检查的“发现新版”和“已是最新”路径均通过。
 
 首次回归中，一个原有悬停测试受主线程调度影响偶发失败；改为在有界时间内等待关闭状态，保留原最终断言后通过。首次打包的目录 diff 跟随 Framework 链接产生重复遍历提示，已替换为不跟随链接的内容、可执行位与链接目标校验。
 
@@ -57,4 +57,25 @@ Sparkle 首次集成检查发现：启用签名 feed 但缺少 `SUVerifyUpdateBe
 | 快捷键 | 录制、错误提示与正常行保持紧凑布局。`screenshots/settings-shortcuts-*`、`settings-recording-*`、`settings-shortcut-error-*` |
 | 关于 | 品牌、版本、更新开关与隐私内容完整显示，无底部裁切或多余滚动条。最终采用 `about-approved/settings-about-*` |
 
-实测使用模拟服务端响应验证真实请求构造和路由；本轮未使用用户的七家真实 Key 逐一付费调用。自签版本的钥匙串授权延续不作保证。评分待公开发布与更新检查证据齐全后填写。
+## 交付与限制
+
+安装包为 `TrueL-0.3.0-arm64.dmg`，大小 1,650,768 字节，SHA-256：
+
+```text
+68b95f62a1bbafa01419c5abcff1a289b8fcd82793b9176f338a1b9d2ad09e5c
+```
+
+更新源为 `https://raw.githubusercontent.com/yangbo-s/TrueL/main/updates/appcast.xml`。本地证据包括 `tests.log`、`release-tests.log`、`final-build.log`、`final-package.log`、`signature-tests.log`、`local-update-check.log`、`tampered-update-check.log`、`public-release-check.log` 和 `public-update-check.log`，均位于 `artifacts/release-0.3.0/`。
+
+实测使用模拟服务端响应验证真实请求构造和路由；本轮未使用用户的七家真实 Key 逐一付费调用。更新检查、包验证和安装包挂载通过，未执行 Sparkle 替换正在使用的应用并重启的完整安装流程。自签版本的钥匙串授权延续不作保证。现有 0.2.x 版本需要先手动安装本次 DMG，此后的版本可以通过应用内检查更新。
+
+## 证据评分：95 / 100
+
+| 项目 | 分数 | 依据与改进 |
+| --- | --- | --- |
+| 需求与验收覆盖 | 25 / 25 | REQ-047 至 REQ-052 均有实现、验证与交付 |
+| 功能正确性与边界 | 25 / 25 | 输入法、空输入、两任务配置隔离、迁移、旧响应及更新签名失败路径通过 |
+| 测试充分性 | 15 / 20 | 109 项应用测试、3 项打包测试、界面与实际更新检查通过；未实测七家付费 API 扣 2 分，未实测完整自动安装重启扣 3 分，可在独立测试账号和安装环境补测 |
+| 架构与接口 | 10 / 10 | 任务模型契约独立，账号目录共享，使用官方固定版 Sparkle |
+| 代码与安全 | 10 / 10 | 固定代码签名、公钥验证、篡改拒绝、私钥和 API Key 不进入公开仓库 |
+| 文档与交付 | 10 / 10 | 使用、开发、发布与验收文档齐全，公开下载和更新源已读回校验 |
