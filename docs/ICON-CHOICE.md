@@ -46,4 +46,4 @@ Dock 自身的自动化连接超时，未取得其窗口的直接截图；当前
 | 视觉 | 25 / 25 | 五页浅深色、14 个选中状态、原始像素与四种原生外观 |
 | 构建与交付 | 20 / 20 | 最终 DMG 校验通过，挂载包签名通过，175 项 bundle 内容与原构建一致 |
 
-本地安装包：`build/TrueL.dmg`，校验日志：`artifacts/icon-choice/package-final.log`。本轮未发布新的 GitHub Release。
+本地安装包：`build/TrueL.dmg`，校验日志：`artifacts/icon-choice/package-final.log`。已发布 [v0.3.1](https://github.com/yangbo-s/TrueL/releases/tag/v0.3.1)，公开安装包与更新源的验证见 [RELEASE-0.3.1.md](RELEASE-0.3.1.md)。
