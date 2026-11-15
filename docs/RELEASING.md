@@ -1,0 +1,43 @@
+# 发布
+
+## 首次配置
+
+需要仓库发布权限、已固定的代码签名证书，以及 Sparkle 更新签名密钥。
+
+```sh
+./tools/fetch-sparkle.sh
+.build/sparkle-tools/bin/generate_keys --account com.truel.sparkle
+```
+
+将工具输出的公钥填入 `Config/release.json` 的 `publicEDKey`。私钥由工具保存在本机钥匙串，后续发布复用。代码签名身份与更新签名密钥是两套独立凭据。
+
+## 准备版本
+
+1. 修改 `Config/release.json` 的 `version` 与 `build`，build 必须递增。
+2. 更新 `CHANGELOG.md` 顶部条目与相关文档。
+3. 运行测试、网格检查和逐页截图审阅。
+4. 运行 `python3 tools/prepare-release.py`。
+
+脚本验证官方工具摘要与更新公钥，构建签名应用、生成 DMG、挂载检查内容，并生成、签名和验证 appcast。产物在 `build/releases/<version>/`：安装包、更新源、发布说明和 `SHA256SUMS`。
+
+## 发布到 GitHub
+
+先提交并推送已验收源码，再发布标签与安装包。下面以 0.3.0 为例：
+
+```sh
+git push origin main
+gh release create v0.3.0 --target main --title 'TrueL 0.3.0' \
+  --notes-file build/releases/0.3.0/TrueL-0.3.0-arm64.md \
+  build/releases/0.3.0/TrueL-0.3.0-arm64.dmg \
+  build/releases/0.3.0/SHA256SUMS
+```
+
+确认下载包可访问且 SHA-256 一致，再把生成的 `appcast.xml` 原样复制到 `updates/appcast.xml`、提交并推送。签名后的 XML 不能手动编辑。
+
+应用的 feed 地址为 `https://raw.githubusercontent.com/yangbo-s/TrueL/main/updates/appcast.xml`。最后从公开地址下载 feed 并验证签名，使用应用里的「检查更新…」验证实际结果。
+
+## 签名与系统确认
+
+当前发布使用固定自签证书；首次安装可能需要在 macOS「隐私与安全性」中确认打开。保持 bundle identifier、证书与安装位置稳定有助于权限延续，但钥匙串仍可能在更新后要求确认。Sparkle 的 Ed25519 签名用于验证更新包和 feed。
+
+更新会重启应用，安装前应结束当前编辑。若版本需要回滚，发布修正版本时仍使用更高的 build number，保留同一更新公钥。

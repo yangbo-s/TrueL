@@ -1,0 +1,14 @@
+.build/
+build/
+artifacts/
+reports/
+design/reference/
+.impeccable/
+.DS_Store
+*.xcuserstate
+*.key
+*.p12
+*.pfx
+.env
+.env.*
+__pycache__/

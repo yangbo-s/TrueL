@@ -1,0 +1,10 @@
+{
+  "version": "0.3.0",
+  "build": "8",
+  "minimumSystemVersion": "26.0",
+  "feedURL": "https://raw.githubusercontent.com/yangbo-s/TrueL/main/updates/appcast.xml",
+  "publicEDKey": "IWrYp4ZKApREbsO4YMVMM/Zkzrti14GrNBs4EzSZUVU=",
+  "sparkleVersion": "2.10.1",
+  "sparkleKeyAccount": "com.truel.sparkle",
+  "sparkleToolsSHA256": "1a856d2a9edb8e628de88121d7be04cf0e2167f8641650b78fca00b14244cf27"
+}
