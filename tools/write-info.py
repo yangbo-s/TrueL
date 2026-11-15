@@ -13,6 +13,8 @@ info = {
     'LSMinimumSystemVersion': config['minimumSystemVersion'], 'NSHighResolutionCapable': True,
     'SUFeedURL': config['feedURL'], 'SUPublicEDKey': config['publicEDKey'],
     'SURequireSignedFeed': True,
+    'SUVerifyUpdateBeforeExtraction': True,
+    'SUSignedFeedFailureExpirationInterval': 0,
     'SUEnableAutomaticChecks': True,
     'SUAutomaticallyUpdate': False,
 }

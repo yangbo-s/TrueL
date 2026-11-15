@@ -34,4 +34,4 @@
 
 发布元数据集中在 `Config/release.json`。构建写入版本、HTTPS feed URL 和 Ed25519 公钥，保留应用 bundle identifier。Sparkle Framework 由 SwiftPM 固定版本，内层可执行文件先签名，再签 Framework 和应用。
 
-更新源和安装包都使用 Ed25519 签名；私钥留在发布者本机钥匙串。预览和测试启动不创建 Sparkle 控制器，也不读取用户 Key 或系统权限。
+更新源和安装包都使用 Ed25519 签名；私钥留在发布者本机钥匙串。`SURequireSignedFeed` 与 `SUVerifyUpdateBeforeExtraction` 同时启用，安装包在解压前验证；签名失败的更新源始终拒绝。预览和测试启动不创建 Sparkle 控制器，也不读取用户 Key 或系统权限。

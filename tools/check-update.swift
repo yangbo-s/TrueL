@@ -31,7 +31,7 @@ final class UpdateProbe: NSObject, SPUUpdaterDelegate {
 
 @main
 struct CheckUpdate {
-    @MainActor static func main() throws {
+    @MainActor static func main() {
         guard CommandLine.arguments.count == 4,
               let bundle = Bundle(path: CommandLine.arguments[1]) else {
             fputs("Usage: check-update HOST_APP EXPECTED_BUILD available|current\n", stderr); exit(2)
@@ -41,7 +41,8 @@ struct CheckUpdate {
         let probe = UpdateProbe(version: CommandLine.arguments[2], expectsUpdate: CommandLine.arguments[3] == "available")
         let driver = SPUStandardUserDriver(hostBundle: bundle, delegate: nil)
         let updater = SPUUpdater(hostBundle: bundle, applicationBundle: bundle, userDriver: driver, delegate: probe)
-        try updater.start()
+        do { try updater.start() }
+        catch { fputs("FAIL updater setup: \(error.localizedDescription)\n", stderr); exit(1) }
         updater.checkForUpdateInformation()
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(45))

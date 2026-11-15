@@ -20,6 +20,10 @@
 
 脚本验证官方工具摘要与更新公钥，构建签名应用、生成 DMG、挂载检查内容，并生成、签名和验证 appcast。产物在 `build/releases/<version>/`：安装包、更新源、发布说明和 `SHA256SUMS`。
 
+发布前用隔离的临时应用副本运行 `tools/check-update.swift`：旧 build 应发现更新，相同 build 应显示已是最新，篡改后的 feed 应被拒绝。它调用实际 Sparkle 更新器，只检查更新信息，不安装。临时副本使用独立 bundle identifier 和测试 feed，避免修改日常使用的应用与偏好。
+
+构建必须同时启用 `SURequireSignedFeed` 和 `SUVerifyUpdateBeforeExtraction`，否则 Sparkle 会拒绝启动。`SUSignedFeedFailureExpirationInterval` 为 `0`，不允许签名失败的 feed 随时间恢复可用。验证安装包和 feed 使用 `tools/verify-update.swift`，只需公钥；仅生成签名时访问本机私钥。
+
 ## 发布到 GitHub
 
 先提交并推送已验收源码，再发布标签与安装包。下面以 0.3.0 为例：
