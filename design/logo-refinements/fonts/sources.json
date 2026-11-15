@@ -1,0 +1,58 @@
+[
+  {
+    "family": "inter",
+    "file": "inter/Inter[opsz,wght].ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/Inter%5Bopsz%2Cwght%5D.ttf",
+    "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031"
+  },
+  {
+    "family": "inter",
+    "file": "inter/OFL.txt",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/OFL.txt",
+    "sha256": "5dd548d31a85f756e01d63e00d7faf1e324103ed3e9102fcbbabf2cc2db6dd39",
+    "upstream_sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
+    "normalization": "Trailing whitespace removed; license text unchanged."
+  },
+  {
+    "family": "manrope",
+    "file": "manrope/Manrope[wght].ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/manrope/Manrope%5Bwght%5D.ttf",
+    "sha256": "3ae11c49db0455a3cc33e37d380f20fdb8c7f8b41dc07625c177e3d87a9d6ae6"
+  },
+  {
+    "family": "manrope",
+    "file": "manrope/OFL.txt",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/manrope/OFL.txt",
+    "sha256": "d6a309fcfb963d329a93baf9df66fa5f3c23a4be2b5f67edf24d6cafecde12ac",
+    "upstream_sha256": "58172e0c0fac2cda8a37b348164bb55e44b0e69051e557e92b1d3f6910141f7b",
+    "normalization": "Trailing whitespace removed; license text unchanged."
+  },
+  {
+    "family": "lora",
+    "file": "lora/Lora[wght].ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/lora/Lora%5Bwght%5D.ttf",
+    "sha256": "822a6621ccbe8d97d20ac88c1c41f5615c9c2c202eaa75f272cd452aac6475a7"
+  },
+  {
+    "family": "lora",
+    "file": "lora/OFL.txt",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/lora/OFL.txt",
+    "sha256": "6d6bc7bbb828514925dabcaf89e4771398d12c60dd1cb2bbb90eea129535d0f4",
+    "upstream_sha256": "1d9a970809ac804b582a6ce7f0ebc4e7fefcbfd7ff6299cad35ee656a21be716",
+    "normalization": "Trailing whitespace removed; license text unchanged."
+  },
+  {
+    "family": "sourceserif4",
+    "file": "sourceserif4/OFL.txt",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/sourceserif4/OFL.txt",
+    "sha256": "0fd8b796c1c6220a559a5682cfd00d1c8488b428369f7cb70deb671888cef85f",
+    "upstream_sha256": "5f94c3fd3a23131a417ab5a0c8452de57e70c3cfb9f604d88241f7065ebf9fd9",
+    "normalization": "Trailing whitespace removed; license text unchanged."
+  },
+  {
+    "family": "sourceserif4",
+    "file": "sourceserif4/SourceSerif4[opsz,wght].ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/sourceserif4/SourceSerif4%5Bopsz%2Cwght%5D.ttf",
+    "sha256": "97b2d4da6e3cb494b5a1e66ae176914d852ccabef49e0c02c0df25f3e39aca0b"
+  }
+]

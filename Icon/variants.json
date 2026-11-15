@@ -1,0 +1,7 @@
+{
+  "default": "3A",
+  "variants": ["1A", "1B", "1C", "3A", "3B", "3C"],
+  "sourceDirectory": "design/logo-refinements/native",
+  "canvasPixels": 512,
+  "bodyPixels": 412
+}

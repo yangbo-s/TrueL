@@ -9,6 +9,7 @@ config = json.loads(Path('Config/release.json').read_text())
 info = {
     'CFBundleExecutable': 'TrueL', 'CFBundleIdentifier': 'com.truel.prototype',
     'CFBundleName': 'TrueL', 'CFBundlePackageType': 'APPL',
+    'CFBundleIconName': 'AppIcon', 'CFBundleIconFile': 'AppIcon',
     'CFBundleShortVersionString': config['version'], 'CFBundleVersion': config['build'],
     'LSMinimumSystemVersion': config['minimumSystemVersion'], 'NSHighResolutionCapable': True,
     'SUFeedURL': config['feedURL'], 'SUPublicEDKey': config['publicEDKey'],

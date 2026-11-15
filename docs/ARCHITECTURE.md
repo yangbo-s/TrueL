@@ -1,5 +1,9 @@
 # 架构与数据契约
 
+## 应用图标
+
+`AppIconStyle` 定义六个稳定 ID。`Preferences.appIcon` 以 `TrueL.appIcon` 保存选择，首次启动或未知 ID 使用 3A；预览模式不读写持久化选择。`AppIconController` 同步载入已打包资源并通过 `NSApplication.applicationIconImage` 更新 Dock，重复选择不重复应用，资源异常回退 3A。默认样式使用 nil 恢复 bundle 图标，Finder 与签名内容保持不变。
+
 ## 模块
 
 | 模块 | 职责 |

@@ -1,0 +1,66 @@
+[
+  {
+    "id": "1A",
+    "name": "紧凑联字",
+    "family": "inter",
+    "font": "Inter ExtraBold",
+    "weight": 800,
+    "kind": "tl",
+    "drop": 0,
+    "size": 560
+  },
+  {
+    "id": "1B",
+    "name": "舒展联字",
+    "family": "manrope",
+    "font": "Manrope ExtraBold",
+    "weight": 800,
+    "kind": "tl",
+    "drop": 0.065,
+    "size": 540
+  },
+  {
+    "id": "1C",
+    "name": "书卷联字",
+    "family": "lora",
+    "font": "Lora Bold",
+    "weight": 700,
+    "kind": "tl",
+    "drop": 0,
+    "size": 570
+  },
+  {
+    "id": "3A",
+    "opening": "rotate-closing",
+    "name": "紧凑句读",
+    "family": "manrope",
+    "font": "Manrope ExtraBold",
+    "weight": 800,
+    "kind": "quotes",
+    "dy": 0.43,
+    "gap": 0.5,
+    "size": 545
+  },
+  {
+    "id": "3B",
+    "name": "平衡句读",
+    "family": "lora",
+    "font": "Lora Bold",
+    "weight": 700,
+    "kind": "quotes",
+    "dy": 0,
+    "gap": 0.45,
+    "size": 535
+  },
+  {
+    "id": "3C",
+    "name": "流动句读",
+    "family": "sourceserif4",
+    "font": "Source Serif 4 Black",
+    "weight": 900,
+    "kind": "quotes",
+    "dy": 0.28,
+    "gap": 0.42,
+    "size": 555
+  }
+]

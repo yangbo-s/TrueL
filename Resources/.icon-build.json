@@ -1,0 +1,52 @@
+{
+  "inputs": {
+    "Icon/AppIcon.icon/Assets/accent.svg": "c0b4d26f7471a6b6c507188b8af8ebb672a5dcaf4eefad1ffdbca8109e60bb70",
+    "Icon/AppIcon.icon/Assets/background.svg": "77f9096656c83f20b1facbb1c2dff3204300a17ce358f66fb524f56a3c639b9f",
+    "Icon/AppIcon.icon/Assets/ink.svg": "ac0fbc234d82ed636a4131c2ace23818d331a9f4042da675755abdc8fa7a45b1",
+    "Icon/AppIcon.icon/icon.json": "f07214be222940aa20ad88fd0ac9809d0036349419b88480874f5f5be2c6f29b",
+    "Icon/variants.json": "31b510249b2c46186c9b90763c882bba09244baecca58b6fa4b5de17e0b7cf98",
+    "default": "3A",
+    "design/logo-refinements/native/1A/AppIcon.icon/Assets/accent.svg": "dc6537d2e606dbb7b608bb771e7c27595192df19fa9ae3e34f49b679008f2291",
+    "design/logo-refinements/native/1A/AppIcon.icon/Assets/ink.svg": "8ee075dbd3e782d79d8144728cc78b42b6f8f929eac29af9e715d6e6ddbf3980",
+    "design/logo-refinements/native/1A/AppIcon.icon/icon.json": "b3d714ce2abf9e636d614c60dc5c7125ac03b6e84192ab7760af1adac805b853",
+    "design/logo-refinements/native/1B/AppIcon.icon/Assets/accent.svg": "0a0a1c29f05cbba7979d54b9d31cdcca36a2048892dabf09c77bb156d62505e2",
+    "design/logo-refinements/native/1B/AppIcon.icon/Assets/ink.svg": "e8608735145f2ebbf978aa2ed813d2afa518a6f8ea3b23715476447cf5c66868",
+    "design/logo-refinements/native/1B/AppIcon.icon/icon.json": "b3d714ce2abf9e636d614c60dc5c7125ac03b6e84192ab7760af1adac805b853",
+    "design/logo-refinements/native/1C/AppIcon.icon/Assets/accent.svg": "0d35aa2c5bae07921011bf2c79491bbec651a1eece8ddced6dfd1770bbcee447",
+    "design/logo-refinements/native/1C/AppIcon.icon/Assets/ink.svg": "922c422abde80bc02c52469ed86f5873aeab1a6de1ee08ddb08c36a458be9485",
+    "design/logo-refinements/native/1C/AppIcon.icon/icon.json": "b3d714ce2abf9e636d614c60dc5c7125ac03b6e84192ab7760af1adac805b853",
+    "design/logo-refinements/native/3A/AppIcon.icon/Assets/accent.svg": "c0b4d26f7471a6b6c507188b8af8ebb672a5dcaf4eefad1ffdbca8109e60bb70",
+    "design/logo-refinements/native/3A/AppIcon.icon/Assets/ink.svg": "ac0fbc234d82ed636a4131c2ace23818d331a9f4042da675755abdc8fa7a45b1",
+    "design/logo-refinements/native/3A/AppIcon.icon/icon.json": "b3d714ce2abf9e636d614c60dc5c7125ac03b6e84192ab7760af1adac805b853",
+    "design/logo-refinements/native/3B/AppIcon.icon/Assets/accent.svg": "631d65114faddc6470150a024f2451772d97621a6edb5ee1608a778334f18808",
+    "design/logo-refinements/native/3B/AppIcon.icon/Assets/ink.svg": "27fb5343d97ee26edbfccd42dcdff70672b0a2631eb152de62520b7f07e61233",
+    "design/logo-refinements/native/3B/AppIcon.icon/icon.json": "b3d714ce2abf9e636d614c60dc5c7125ac03b6e84192ab7760af1adac805b853",
+    "design/logo-refinements/native/3C/AppIcon.icon/Assets/accent.svg": "24f21a69b68339d737cae400a8f55eae64a1f3543e3cf626d827c857d981ac69",
+    "design/logo-refinements/native/3C/AppIcon.icon/Assets/ink.svg": "f340305b36da7af3f8fafb73e5c4f74d923e90ec98a04db3e736f99aeb0bbf1c",
+    "design/logo-refinements/native/3C/AppIcon.icon/icon.json": "b3d714ce2abf9e636d614c60dc5c7125ac03b6e84192ab7760af1adac805b853",
+    "tool:actool": "/Applications/Xcode.app/Contents/Developer/usr/bin/actool:92416:1792468964000000000",
+    "tool:ictool": "/Applications/Xcode.app/Contents/Applications/Icon Composer.app/Contents/Executables/ictool:95040:1792541134000000000",
+    "tools/icon-assets.swift": "d2077a2d460b9afef5c1757d06a8a4c93d1dfb07636eaaf0219a2b59c8cd1a0d",
+    "tools/make-icons.py": "682de0bb6f4c80bdd78598fb109c8b599dc156f59781e0e90e6058f0d7d79a96"
+  },
+  "nativeInfo": {
+    "CFBundleIconFile": "AppIcon",
+    "CFBundleIconName": "AppIcon"
+  },
+  "outputs": {
+    "AppIcon.icns": "c25ec35fc71ecf45359e08e12dfcea9834eb12da5f1951905aad668221c26cdc",
+    "AppIcons/1A-preview.png": "a6e2ace949812db4fee9ed9a6da49354b9b8ff5ea01302be6b5c213dddd7297a",
+    "AppIcons/1A.png": "5827b62e20861ac8a5dd2bbb21df685d5f29295b7492e22e62dc5d6d0f6b348c",
+    "AppIcons/1B-preview.png": "2d89d40fc58b9e72c91834a3e3c43b33f6504dd29ecfa153af7f0e09e5cacbc7",
+    "AppIcons/1B.png": "f11bfb77a24e0eef36993ffeaea8277612da67653ada41bcf3bcf8b8fb799121",
+    "AppIcons/1C-preview.png": "02e0e85163c7fdd971d9a601220387fb594b6e09775d7e8697ef006248fd61c0",
+    "AppIcons/1C.png": "5c29237b16005bc8bb5a3cb51640fd6a7d4bede263e67451bad27eb51a88dc2e",
+    "AppIcons/3A-preview.png": "6e265a70a1175f6f0bfdcb2720a037e6e5fb9d4d41824f99a7f63c929df8257d",
+    "AppIcons/3A.png": "cc5fbd3f8ab0d5ffc2204c0fac3acac58256a09021ab1f98f38e635d6a80d00f",
+    "AppIcons/3B-preview.png": "ddbdaa1a2768825b17f3e87682f3d9930f1c7679c2bb42fb752b09c6d3b41ede",
+    "AppIcons/3B.png": "bb19cec4735a9dc5d1fc605c4be8f7d8d7ea3eadb7e72d6f02d69d17b33d9367",
+    "AppIcons/3C-preview.png": "8df7d8b8b42e72b4dc5b6fd31933413b1060d18e31be79d7844bfd061cdd3f2a",
+    "AppIcons/3C.png": "820fbb128c0cd0f2e654fb37b8539c6011870f056acb001c74214afce33b52a0",
+    "Assets.car": "03b401952e783f25c660e37e3a3479203c66c69fa4ef884b709f70248ff47c9d"
+  }
+}

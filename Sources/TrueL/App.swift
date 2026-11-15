@@ -25,6 +25,7 @@ final class FloatingPanel: NSPanel {
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let model: DemoModel
     let preferences: Preferences
+    let appIconController = AppIconController()
     let updater: AppUpdater
     let service: ServiceConfiguration
     let shortcuts: ShortcutStore
@@ -73,6 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         setupMenu()
         showPanel()
         observePreferences()
+        observeAppIcon()
         observeService()
         if let directory = ProcessInfo.processInfo.environment["APP_SNAPSHOT"] {
             snapshotRunning = true
@@ -307,6 +309,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             model.writingStyle = preferences.writingScene
         } onChange: { [weak self] in
             Task { @MainActor in self?.observePreferences() }
+        }
+    }
+
+    private func observeAppIcon() {
+        withObservationTracking {
+            let applied = appIconController.apply(preferences.appIcon)
+            if applied != preferences.appIcon { preferences.appIcon = applied }
+        } onChange: { [weak self] in
+            Task { @MainActor in self?.observeAppIcon() }
         }
     }
 

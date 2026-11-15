@@ -2,7 +2,7 @@
 
 ## 环境
 
-macOS 26+、Apple silicon、Swift 6.2 或更新版本、Xcode Command Line Tools、Python 3。项目使用 SwiftPM；Sparkle 固定版本见 `Package.resolved`。
+macOS 26+、Apple silicon、Swift 6.2 或更新版本、Xcode 26（含 Icon Composer）、Python 3。项目使用 SwiftPM；Sparkle 固定版本见 `Package.resolved`。
 
 ```sh
 ./tools/test.sh
@@ -37,7 +37,11 @@ python3 tools/signing.py setup --self-signed --identity <证书SHA-1>
 python3 tools/check-layout.py artifacts/screenshots
 ```
 
-截图模式 `APP_SNAPSHOT` 使用模拟 API、内存设置和固定权限状态，不访问真实 Key；自动覆盖主浮窗、结果、异常、长内容、调整尺寸及四个设置页的浅深两种外观。输出包括 PNG 与 `captures.json`。须逐张检查对齐、裁切、焦点和材料效果，不能只凭截图数量判断通过。
+截图模式 `APP_SNAPSHOT` 使用模拟 API、内存设置和固定权限状态，不访问真实 Key；自动覆盖主浮窗、结果、异常、长内容、调整尺寸及五个设置页的浅深两种外观。输出包括 PNG 与 `captures.json`。须逐张检查对齐、裁切、焦点和材料效果，不能只凭截图数量判断通过。
+
+图标母版保存在 `design/logo-refinements/native`，默认原生图标为 `Icon/AppIcon.icon`。`build.sh` 调用 `python3 tools/make-icons.py`，按内容哈希缓存编译产物。`Resources` 中保留可审查的资源，`python3 tools/make-icons.py --check` 验证是否与母版一致。
+
+逐款切换验收可运行 `APP_SNAPSHOT_SCOPE=icons ./tools/snap.sh`，再执行 `python3 tools/check-layout.py artifacts/screenshots --icons`。
 
 主程序保持单个工作浮窗；设置显示时隐藏工作浮窗。修改状态和布局时，同时维护 Snapshot 状态矩阵和实际行为测试。
 

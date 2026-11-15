@@ -9,6 +9,7 @@ export CLANG_MODULE_CACHE_PATH="$PWD/.build/modules"
 export SWIFTPM_MODULECACHE_OVERRIDE="$PWD/.build/modules"
 flags=(--cache-path "$PWD/.build/cache" --config-path "$PWD/.build/config" --security-path "$PWD/.build/security")
 swift build "${flags[@]}" -c "$config"
+python3 tools/make-icons.py
 bin="$(swift build "${flags[@]}" -c "$config" --show-bin-path)"
 app="$PWD/build/TrueL.app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
@@ -21,6 +22,8 @@ mkdir -p "$app/Contents/Frameworks"
 rm -rf "$app/Contents/Frameworks/Sparkle.framework"
 /usr/bin/ditto "$framework" "$app/Contents/Frameworks/Sparkle.framework"
 cp THIRD_PARTY_NOTICES.md "$app/Contents/Resources/THIRD_PARTY_NOTICES.md"
+cp Resources/Assets.car Resources/AppIcon.icns "$app/Contents/Resources/"
+/usr/bin/ditto Resources/AppIcons "$app/Contents/Resources/AppIcons"
 python3 tools/signing.py sign "$app"
 echo "Built $app"
 if [[ " ${*:-} " == *" --open "* ]]; then ./tools/install-local.sh --open; fi

@@ -4,13 +4,14 @@ private typealias SettingsState<Value> = SwiftUI.State<Value>
 private typealias SettingsFocus<Value: Hashable> = SwiftUI.FocusState<Value>
 
 enum SettingsPage: String, CaseIterable, Identifiable {
-    case general, service, shortcuts, about
+    case general, service, shortcuts, icons, about
     var id: String { rawValue }
     var title: String {
         switch self {
         case .general: "通用"
         case .service: "AI 服务"
         case .shortcuts: "快捷键"
+        case .icons: "图标"
         case .about: "关于"
         }
     }
@@ -57,6 +58,7 @@ struct SettingsView: View {
                     case .general: general
                     case .service: ServiceSettings(service: service)
                     case .shortcuts: shortcutsPage
+                    case .icons: iconsPage
                     case .about: about
                     }
                 }
@@ -125,6 +127,31 @@ struct SettingsView: View {
             shortcutRow(.selectionGrammar)
             TrueLInlineStatus(text: shortcuts.status, symbol: "keyboard")
                 .padding(.top, 4)
+        }
+        .padding(SurfaceMetrics.inset)
+        .modifier(TrueLIsland())
+    }
+
+    private var iconsPage: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: SurfaceMetrics.relatedGap), count: 3),
+                  spacing: SurfaceMetrics.relatedGap) {
+            ForEach(AppIconStyle.allCases) { style in
+                Button { preferences.appIcon = style } label: {
+                    VStack(spacing: SurfaceMetrics.relatedGap) {
+                        if let image = AppIconAssets.preview(for: style) {
+                            Image(nsImage: image).renderingMode(.original).resizable().interpolation(.high)
+                                .frame(width: 64, height: 64)
+                        }
+                        Text("\(style.rawValue) · \(style.title)")
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(AppIconChoiceStyle(selected: preferences.appIcon == style))
+                .accessibilityIdentifier("TrueL.icon.\(style.rawValue)")
+                .accessibilityLabel("\(style.rawValue)，\(style.title)")
+                .accessibilityAddTraits(preferences.appIcon == style ? .isSelected : [])
+                .help(style == .defaultStyle ? "默认应用图标" : "切换 Dock 图标")
+            }
         }
         .padding(SurfaceMetrics.inset)
         .modifier(TrueLIsland())

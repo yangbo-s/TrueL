@@ -22,6 +22,18 @@ extension AppDelegate {
             preferences.appearance = scheme
             NSApp.appearance = NSAppearance(named: scheme == "dark" ? .darkAqua : .aqua)
             settings?.orderOut(nil)
+            if ProcessInfo.processInfo.environment["APP_SNAPSHOT_SCOPE"] == "icons" {
+                showSettings(page: .icons)
+                for style in AppIconStyle.allCases {
+                    preferences.appIcon = style
+                    await pause()
+                    results.append(capture(settings!, name: "settings-icon-\(style.rawValue)-\(scheme)", folder: folder))
+                }
+                preferences.appIcon = .defaultStyle
+                await pause()
+                results.append(capture(settings!, name: "settings-icon-default-\(scheme)", folder: folder))
+                continue
+            }
             if ProcessInfo.processInfo.environment["APP_SNAPSHOT_SCOPE"] == "about" {
                 showSettings(page: .about)
                 await pause()
@@ -232,6 +244,8 @@ extension AppDelegate {
                 "nativeWindowControls": String([NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton]
                     .compactMap { window.standardWindowButton($0) }.filter { !$0.isHidden && $0.isEnabled }.count),
                 "headerWithinWindow": String(headerWithinWindow),
+                "selectedAppIcon": preferences.appIcon.rawValue,
+                "appliedAppIcon": appIconController.appliedStyle?.rawValue ?? "none",
                 "backingScale": String(format: "%.1f", window.backingScaleFactor),
                 "screen": window.screen?.localizedName ?? "unknown"]
     }
