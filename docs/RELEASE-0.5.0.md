@@ -27,6 +27,20 @@
 
 DMG 挂载检查通过，183 项 bundle 内容与构建产物一致。安装包和 appcast Ed25519 验签通过；真实 Sparkle 检查旧 build 13 发现 14、build 14 已是最新、篡改 feed 被拒绝。日志：`artifacts/release-0.5.0/{package.log,local-update-check.log}`。
 
-公开发布和回读记录将在发布后补入。
+源码提交 `6db5c51f01093d98b42311b84fc86fc83464c8d5` 已推送至 main，正式标签 `v0.5.0` 指向该提交。签名更新源提交为 `cdd058725fcbc31dcdeb35733b9522ebe711c13a`。
+
+[TrueL 0.5.0](https://github.com/yangbo-s/TrueL/releases/tag/v0.5.0) 已发布为最新正式版，包含 [DMG](https://github.com/yangbo-s/TrueL/releases/download/v0.5.0/TrueL-0.5.0-arm64.dmg) 与 SHA256SUMS。匿名下载字节与本地一致，安装包签名通过。公开 HTTPS feed 与本地签名文件逐字节一致；实际 Sparkle 读取 build 14、13、12，旧 build 13 发现 14，build 14 显示最新。TC-086 通过。日志为 `artifacts/release-0.5.0/{public-release-check.log,public-update-check.log,public-update-results.json}`。
 
 安装包 `build/releases/0.5.0/TrueL-0.5.0-arm64.dmg`，2,856,228 字节。SHA-256：`cb909756eaec38dc3445f69d650b4113de1a8b1eeb59901b2a67fb3a45a0d80c`。
+
+## 证据评分
+
+| 项目 | 得分 | 依据 / 保留限制 |
+| --- | --- | --- |
+| 需求与验收覆盖 | 25/25 | REQ-079–086 均有实现、状态测试和窗口证据 |
+| 功能与边界 | 24/25 | 关闭/失焦/置顶/设置/重开、短中文、无效来源、互换和重复选择通过；混合语言和歧义短句仍可能需手选 |
+| 测试 | 17/20 | 152 项、90 张状态截图、原生菜单/互换/关闭/失焦及两次真实更新；未实测七家服务商全部风格或人工 VoiceOver 朗读 |
+| 架构与接口 | 10/10 | 复用单窗口、语言/风格目录、统一菜单与符号组件，无新依赖 |
+| 代码、安全与维护 | 10/10 | 构建无警告，旧异步响应隔离、严格选区校验与凭据组件不变 |
+| 文档与交付 | 10/10 | 使用、产品、设计、开发和架构文档及截图更新；源码、DMG、签名 feed 与公开回读完成 |
+| 合计 | **96/100** | P0/P1 验收项通过；上述限制已披露 |
