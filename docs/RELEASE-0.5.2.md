@@ -18,4 +18,20 @@ REQ-088：在透明、随图标选择更新、整体居中的基础上，缩小�
 
 本轮没有遗留失败。截图及交互使用独立预览和模拟内容；已安装的日常应用、偏好与真实 API Key 未改动。尚未在 1× 外接显示器上复核，未做人工 VoiceOver 朗读评测。
 
-安装包 `build/releases/0.5.2/TrueL-0.5.2-arm64.dmg`，SHA-256：`2a1e95a62ef3fb32183a7c306c0b46d57b8fefaf2de64ed6d19402eb446a0068`。公开发布与回读结果待补齐。
+安装包 `build/releases/0.5.2/TrueL-0.5.2-arm64.dmg`，2,870,074 字节。SHA-256：`2a1e95a62ef3fb32183a7c306c0b46d57b8fefaf2de64ed6d19402eb446a0068`。
+
+源码提交 `07a4dd064f9677875d05b347931dad2dc283339b` 已推送，正式标签 `v0.5.2` 指向该提交。[TrueL 0.5.2](https://github.com/yangbo-s/TrueL/releases/tag/v0.5.2) 已发布为最新正式版，包含 [DMG](https://github.com/yangbo-s/TrueL/releases/download/v0.5.2/TrueL-0.5.2-arm64.dmg) 与 SHA256SUMS。匿名下载内容和本地逐字节一致，摘要及安装包签名通过。
+
+签名更新源提交 `72950bc01cd72c10af062a0645665bf83d96b588` 已推送。公开 HTTPS feed 与本地签名文件逐字节一致且验签通过；真实 Sparkle 收到 build 16、14、13，build 14 与 15 均发现 16，build 16 显示已是最新。证据：`artifacts/release-0.5.2/{public-release-check.log,public-update-check.log,public-update-results.json}`。TC-088e 的公开交付通过。
+
+## 证据评分
+
+| 项目 | 得分 | 依据与限制 |
+| --- | --- | --- |
+| 需求与验收覆盖 | 25/25 | 透明标志、六款同步、字高比例、4 pt 间距和组合居中均有实测 |
+| 功能与边界 | 25/25 | 六款选择、默认恢复、快速/普通/设置、缩放和拖动通过 |
+| 测试 | 17/20 | 153 项、76 张页面截图、实际像素和原生坐标测量、两次真实更新；未在 1× 外接显示器或人工 VoiceOver 场景验证 |
+| 架构与接口 | 10/10 | 复用现有图标母版、偏好与共享顶栏，无新依赖 |
+| 代码、安全与维护 | 10/10 | 资产可追溯，保持 Dock 图标与固定凭据组件；隔离验收不读取真实 Key |
+| 文档与交付 | 10/10 | 界面规范、使用截图、版本记录、源码、DMG 与签名更新源均已同步及回读 |
+| 合计 | **97/100** | 本轮 P0/P1 验收通过，未覆盖场景如上 |
