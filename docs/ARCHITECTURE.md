@@ -35,7 +35,9 @@
 
 目录可分页，最多 50 页；重复页 token 和无效响应被拒绝。服务端 401、403、429、超时、内容拦截、截断及空响应均有独立错误。
 
-OpenAI 翻译通过 `generateTranslation` 使用 SSE，首个正文片段立即显示，后续更新最多每 32 毫秒一次。仅已核实支持的 `gpt-6-luna` 翻译设置 `reasoning_effort: none`；其他模型、改写和服务商保留原有推理策略。推理字段不显示，完整 `stop` / `[DONE]` 后才允许复制和替换；流中错误或缺失结束标记清除部分译文。每次发布片段和最终结果都检查取消及配置 revision。网络仍复用禁止重定向的临时 URLSession，结束、取消或解析失败会关闭当前任务，且不自动重试。契约与证据见 [翻译等待优化](TRANSLATION-LATENCY.md)。
+OpenAI 翻译通过 `generateTranslation` 使用 SSE，首个正文片段立即显示，后续更新最多每 32 毫秒一次。仅已核实支持的 `gpt-6-luna` 翻译设置 `reasoning_effort: none`。推理字段不显示，完整 `stop` / `[DONE]` 后才允许复制和替换；流中错误或缺失结束标记清除部分译文。每次发布片段和最终结果都检查取消及配置 revision。网络仍复用禁止重定向的临时 URLSession，结束、取消或解析失败会关闭当前任务，且不自动重试。契约与证据见 [翻译等待优化](TRANSLATION-LATENCY.md)。
+
+OpenAI 改写通过 `generateRewrite` 复用 `OpenAITextStream`，已验证的 `gpt-6.1-terra` 使用 `reasoning_effort: low`。提示词要求先生成 `output`，正文字符串完整后由 `RewriteOutputPreview` 解码并提前显示；不预览 JSON、不完整字符串或嵌套同名字段，字段顺序不同则等待最终解析。纠错与提示仍须完整响应通过 `parseGrammar` 后才发布，预览阶段禁止复制和替换，失败清除预览。其他模型和服务商的推理策略不变，非 OpenAI 改写保留完整响应路径。见 [改写等待优化](REWRITE-LATENCY.md)。
 
 ## 更新与凭据
 

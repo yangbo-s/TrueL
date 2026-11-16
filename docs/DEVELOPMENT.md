@@ -58,6 +58,8 @@ python3 tools/check-layout.py artifacts/screenshots
 
 翻译增量显示：`APP_SNAPSHOT_SCOPE=translation-streaming ./tools/snap.sh`，再运行 `python3 tools/check-layout.py artifacts/screenshots --translation-streaming`。覆盖快速浮窗和左右对照在浅深外观中的处理中正文与完成状态；使用模拟内容，不调用真实 API。`TranslationLatencyTests` 用受控流验证首段提前显示、请求参数、取消隔离和失败清理。
 
+改写正文预览：`APP_SNAPSHOT_SCOPE=rewrite-streaming ./tools/snap.sh`，再运行 `python3 tools/check-layout.py artifacts/screenshots --rewrite-streaming`。覆盖完整正文等待纠错期间的操作禁用，以及完成后的三处纠错；使用内存模拟数据。`RewriteLatencyTests` 验证真实 engine/client 组合的流时序、最终 JSON 校验和会话隔离，`RewriteOutputPreviewTests` 验证 JSON 字符串边界、转义和 Unicode。
+
 交互式快捷预览可直接运行 `APP_SNAPSHOT=/tmp/truel-workspace-review APP_SNAPSHOT_SCOPE=workspace-review build/TrueL.app/Contents/MacOS/TrueL`；它保留一张模拟快速结果窗口，供测试菜单、原生关闭、外部失焦及正常重开。结束后退出这个预览进程。
 
 已具备辅助功能和输入监控权限的开发终端可运行 `./tools/check-quick-workflows.sh`。它编译并启动独立测试窗口，真实发送 Ctrl+A+A / Ctrl+C+C，验证结果窗激活后的 AX 替换、超时归还按键、选区变化、来源关闭与只读拒写。仅操作自建窗口，完成后关闭，不读取用户文档和 Key。

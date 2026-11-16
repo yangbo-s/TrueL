@@ -152,8 +152,8 @@ struct TranslationLatencyTests {
         }
     }
 
-    @Test(arguments: AIProvider.allCases.filter { $0 != .openAI })
-    func otherProvidersKeepTheirExistingGenerationPath(_ provider: AIProvider) async throws {
+    @Test(arguments: AIProvider.allCases.filter { $0 != .openAI }, WorkMode.allCases)
+    func otherProvidersKeepTheirExistingGenerationPath(_ provider: AIProvider, mode: WorkMode) async throws {
         let client = AIClient(transport: { request in
             let json: String
             switch provider {
@@ -167,9 +167,14 @@ struct TranslationLatencyTests {
             #expect(body["reasoning_effort"] == nil)
             return (Data(json.utf8), streamResponse(request))
         }, streamingTransport: { _, _ in Issue.record("Unexpected streaming request") })
-        let result = try await client.generateTranslation(configuration: config(provider: provider), system: "system", user: "source", onUpdate: { _ in
+        let onUpdate: AITextUpdate = { _ in
             Issue.record("Unexpected partial result")
-        })
+        }
+        let result = if mode == .translation {
+            try await client.generateTranslation(configuration: config(provider: provider), system: "system", user: "source", onUpdate: onUpdate)
+        } else {
+            try await client.generateRewrite(configuration: config(provider: provider), system: "system", user: "source", onUpdate: onUpdate)
+        }
         #expect(result == "正文")
     }
 

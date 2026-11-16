@@ -195,6 +195,13 @@ final class DemoModel {
         errorMessage = message
     }
 
+    func showPreviewPendingResult() {
+        invalidateAndClear()
+        output = Self.fixture(source: input.trimmingCharacters(in: .whitespacesAndNewlines),
+                              mode: mode, targetLanguage: resolvedTargetLanguage).text
+        isProcessing = true
+    }
+
     private func invalidateAndClear() {
         generation = UUID()
         work?.cancel()
@@ -234,7 +241,7 @@ final class DemoModel {
                 self.work = nil
             } catch {
                 guard let self, self.generation == token, !Task.isCancelled else { return }
-                // A partial translation must never become an actionable result.
+                // An unverified preview must never become an actionable result.
                 self.output = ""
                 self.isProcessing = false
                 self.work = nil

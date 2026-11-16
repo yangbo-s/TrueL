@@ -1,17 +1,24 @@
 import Foundation
 
-typealias TranslationTextUpdate = @MainActor @Sendable (String) throws -> Void
+typealias AITextUpdate = @MainActor @Sendable (String) throws -> Void
 
 protocol AIClientProtocol: Sendable {
     func listModels(provider: AIProvider, apiKey: String) async throws -> [AIModelInfo]
     func generate(configuration: AIConfiguration, system: String, user: String) async throws -> String
     func generateTranslation(configuration: AIConfiguration, system: String, user: String,
-                             onUpdate: @escaping TranslationTextUpdate) async throws -> String
+                             onUpdate: @escaping AITextUpdate) async throws -> String
+    func generateRewrite(configuration: AIConfiguration, system: String, user: String,
+                         onUpdate: @escaping AITextUpdate) async throws -> String
 }
 
 extension AIClientProtocol {
     func generateTranslation(configuration: AIConfiguration, system: String, user: String,
-                             onUpdate: @escaping TranslationTextUpdate) async throws -> String {
+                             onUpdate: @escaping AITextUpdate) async throws -> String {
+        try await generate(configuration: configuration, system: system, user: user)
+    }
+
+    func generateRewrite(configuration: AIConfiguration, system: String, user: String,
+                         onUpdate: @escaping AITextUpdate) async throws -> String {
         try await generate(configuration: configuration, system: system, user: user)
     }
 }
@@ -123,14 +130,24 @@ struct AIClient: AIClientProtocol {
     }
 
     func generateTranslation(configuration: AIConfiguration, system: String, user: String,
-                             onUpdate: @escaping TranslationTextUpdate) async throws -> String {
+                             onUpdate: @escaping AITextUpdate) async throws -> String {
+        try await generateStream(configuration: configuration, system: system, user: user, mode: .translation, onUpdate: onUpdate)
+    }
+
+    func generateRewrite(configuration: AIConfiguration, system: String, user: String,
+                         onUpdate: @escaping AITextUpdate) async throws -> String {
+        try await generateStream(configuration: configuration, system: system, user: user, mode: .grammar, onUpdate: onUpdate)
+    }
+
+    private func generateStream(configuration: AIConfiguration, system: String, user: String, mode: WorkMode,
+                                onUpdate: @escaping AITextUpdate) async throws -> String {
         guard configuration.provider == .openAI else {
             return try await generate(configuration: configuration, system: system, user: user)
         }
         try validateKey(configuration.apiKey)
         guard AIProvider.isSafeModelID(configuration.modelID) else { throw AIClientError.invalidModel }
-        let request = try generationRequest(configuration: configuration, system: system, user: user, streamingTranslation: true)
-        let stream = OpenAITranslationStream(onUpdate: onUpdate)
+        let request = try generationRequest(configuration: configuration, system: system, user: user, streamingMode: mode)
+        let stream = OpenAITextStream(mode: mode, onUpdate: onUpdate)
         do {
             try Task.checkCancellation()
             try await streamingTransport(request) { event in try await stream.receive(event) }
@@ -163,7 +180,7 @@ struct AIClient: AIClientProtocol {
     }
 
     private func generationRequest(configuration: AIConfiguration, system: String, user: String,
-                                   validating: Bool = false, streamingTranslation: Bool = false) throws -> URLRequest {
+                                   validating: Bool = false, streamingMode: WorkMode? = nil) throws -> URLRequest {
         let provider = configuration.provider
         var request = request(url: try provider.generationURL(modelID: configuration.modelID), provider: provider, apiKey: configuration.apiKey)
         request.httpMethod = "POST"
@@ -180,18 +197,22 @@ struct AIClient: AIClientProtocol {
                     "generationConfig": ["maxOutputTokens": 8192]]
         default:
             var chat: [String: Any] = ["model": configuration.modelID,
-                "messages": [["role": "system", "content": system], ["role": "user", "content": user]], "stream": streamingTranslation]
+                "messages": [["role": "system", "content": system], ["role": "user", "content": user]], "stream": streamingMode != nil]
             let tokenField = (provider == .openAI || provider == .kimi) ? "max_completion_tokens" : "max_tokens"
             chat[tokenField] = validating ? 16 : 8192
             if validating { chat["thinking"] = ["type": "disabled"] }
-            // Only opt out for the documented model and translation task. Other
-            // models can reject `none`; rewriting retains its existing policy.
-            if streamingTranslation, provider == .openAI, configuration.modelID == "gpt-6-luna" {
-                chat["reasoning_effort"] = "none"
+            // Effort compatibility is model-specific. Keep other models on their
+            // existing policy and preserve some reasoning for grammar analysis.
+            if provider == .openAI {
+                if streamingMode == .translation, configuration.modelID == "gpt-6-luna" {
+                    chat["reasoning_effort"] = "none"
+                } else if streamingMode == .grammar, configuration.modelID == "gpt-6.1-terra" {
+                    chat["reasoning_effort"] = "low"
+                }
             }
             body = chat
         }
-        if streamingTranslation { request.setValue("text/event-stream", forHTTPHeaderField: "Accept") }
+        if streamingMode != nil { request.setValue("text/event-stream", forHTTPHeaderField: "Accept") }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         return request
     }

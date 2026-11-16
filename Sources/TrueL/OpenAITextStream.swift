@@ -7,16 +7,21 @@ enum AIStreamEvent: Sendable {
 
 /// OpenAI emits one JSON chunk per SSE data line. Keep transport state off the
 /// main actor and publish only visible text, with the first chunk sent immediately.
-actor OpenAITranslationStream {
-    private let onUpdate: TranslationTextUpdate
+actor OpenAITextStream {
+    private let mode: WorkMode
+    private let onUpdate: AITextUpdate
     private var receivedResponse = false
     private var receivedStop = false
     private var receivedDone = false
     private var byteCount = 0
     private var text = ""
     private var lastUpdate: ContinuousClock.Instant?
+    private var publishedRewrite = false
 
-    init(onUpdate: @escaping TranslationTextUpdate) { self.onUpdate = onUpdate }
+    init(mode: WorkMode, onUpdate: @escaping AITextUpdate) {
+        self.mode = mode
+        self.onUpdate = onUpdate
+    }
 
     func receive(_ event: AIStreamEvent) async throws {
         try Task.checkCancellation()
@@ -56,6 +61,15 @@ actor OpenAITranslationStream {
             }
             if let content = delta["content"] as? String, !content.isEmpty {
                 text += content
+                if mode == .grammar {
+                    // Publish the complete body once, while explanations continue.
+                    // Raw JSON and incomplete string escapes never enter the UI.
+                    if !publishedRewrite, let output = RewriteOutputPreview.completedText(in: text) {
+                        try await onUpdate(output)
+                        publishedRewrite = true
+                    }
+                    return
+                }
                 let now = ContinuousClock.now
                 if lastUpdate.map({ now - $0 >= .milliseconds(32) }) ?? true {
                     try await onUpdate(text)

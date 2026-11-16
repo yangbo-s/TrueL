@@ -37,7 +37,11 @@ extension AppDelegate {
             return
         }
         if ProcessInfo.processInfo.environment["APP_SNAPSHOT_SCOPE"] == "translation-streaming" {
-            await takeTranslationStreamingSnapshots(directory: directory)
+            await takeStreamingSnapshots(directory: directory, mode: .translation)
+            return
+        }
+        if ProcessInfo.processInfo.environment["APP_SNAPSHOT_SCOPE"] == "rewrite-streaming" {
+            await takeStreamingSnapshots(directory: directory, mode: .grammar)
             return
         }
         preferences.alwaysOnTop = false
@@ -225,21 +229,23 @@ extension AppDelegate {
         }
     }
 
-    private func takeTranslationStreamingSnapshots(directory: String) async {
+    private func takeStreamingSnapshots(directory: String, mode: WorkMode) async {
         let folder = URL(fileURLWithPath: directory)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         var records: [[String: String]] = []
-        let source = Array(repeating: "Reading helps us understand complex ideas and communicate clearly.", count: 8).joined(separator: "\n\n")
+        let source = mode == .grammar ? "I has a idea. It help people write better."
+            : Array(repeating: "Reading helps us understand complex ideas and communicate clearly.", count: 8).joined(separator: "\n\n")
         for scheme in ["light", "dark"] {
             preferences.appearance = scheme
             NSApp.appearance = NSAppearance(named: scheme == "dark" ? .darkAqua : .aqua)
             for presentation in [PopupPresentation.quick, .workspace] {
-                beginInput(source, mode: .translation, canReplaceSelection: true, presentation: presentation)
-                await pause(milliseconds: 1_800)
-                records.append(capture(panel, name: "\(presentation.rawValue)-translation-streaming-\(scheme)", folder: folder))
+                beginInput(source, mode: mode, canReplaceSelection: true, presentation: presentation)
+                if mode == .grammar { model.showPreviewPendingResult() }
+                await pause(milliseconds: mode == .grammar ? 650 : 1_800)
+                records.append(capture(panel, name: "\(presentation.rawValue)-\(mode.rawValue)-streaming-\(scheme)", folder: folder))
                 model.showPreviewResult()
                 await pause()
-                records.append(capture(panel, name: "\(presentation.rawValue)-translation-result-\(scheme)", folder: folder))
+                records.append(capture(panel, name: "\(presentation.rawValue)-\(mode.rawValue)-result-\(scheme)", folder: folder))
             }
         }
         let data = try? JSONSerialization.data(withJSONObject: records, options: [.prettyPrinted, .sortedKeys])
@@ -422,6 +428,7 @@ extension AppDelegate {
                 "isProcessing": String(model.isProcessing),
                 "hasResult": String(model.hasResult),
                 "outputCharacters": String(model.output.count),
+                "correctionCount": String(model.corrections.count),
                 "canSubmit": String(model.canSubmit),
                 "scrollCount": String(window.contentView.map { scrollViews(in: $0).count } ?? 0),
                 "windowNumber": String(window.windowNumber),
