@@ -6,6 +6,20 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>TrueL</title>
         <item>
+            <title>0.5.3</title>
+            <pubDate>Sun, 15 Nov 2026 23:35:24 -0500</pubDate>
+            <sparkle:version>17</sparkle:version>
+            <sparkle:shortVersionString>0.5.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[- GPT 翻译边生成边显示，首段译文无需等待整段完成。
+- GPT-6 Luna 翻译关闭额外推理，减少生成前的等待。
+- GPT 改写先显示完整正文，再补齐纠错和提示；GPT-6.1 Terra 改写使用低推理强度，缩短等待。
+- 未完成或中途失败的翻译和改写不会被复制或替换回原文。
+]]></description>
+            <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.5.3/TrueL-0.5.3-arm64.dmg" length="2889887" type="application/octet-stream" sparkle:edSignature="pFql+O8HdO5HZ+9UMzac+XEzESpznowfF7MgE7MYZIWj0W/4lftPkiv7GKViOOvZcE3PB8UF2DKNy0KNj74sCw=="/>
+        </item>
+        <item>
             <title>0.5.2</title>
             <pubDate>Sun, 15 Nov 2026 22:09:13 -0500</pubDate>
             <sparkle:version>16</sparkle:version>
@@ -31,22 +45,9 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 ]]></description>
             <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.5.0/TrueL-0.5.0-arm64.dmg" length="2856228" type="application/octet-stream" sparkle:edSignature="mIk07kaEawKidGtoqQ8Qd2Yl+xK8Qatv8/ewUAeuR4PSLjm/Q1EevL0YpCcJBYsoaIvLYXT+BsgTfza4SoPCCw=="/>
         </item>
-        <item>
-            <title>0.4.1</title>
-            <pubDate>Sun, 15 Nov 2026 21:05:24 -0500</pubDate>
-            <sparkle:version>13</sparkle:version>
-            <sparkle:shortVersionString>0.4.1</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[- 翻译与改写移至红绿灯右侧，原文岛标题改为「原有内容」。
-- 提交、替换和调整统一常显回车图标，绿色仅标记当前回车动作。
-- 快速模式可从顶栏切换任务，直接处理同一原文并保留仍有效的选区。
-]]></description>
-            <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.4.1/TrueL-0.4.1-arm64.dmg" length="2863436" type="application/octet-stream" sparkle:edSignature="/p6jOgKKsCOBttQJQAmG+ca2fhAO2uiiz8NF/jV56tD710ylKuhKZsxjOxOmcwYFYHVim2T/Bghi6nyjbnJDBQ=="/>
-        </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: CmSAeP2tyHBb2lCaB4jSvsh2n8/JMB8VWP9IhjNe8oqMB/Y8bHqh2VbvmMylxOdvohZgMbU8TJCLfOpxoLhHCw==
-length: 3633
+edSignature: lT88cvetZ97ZCs+nOB5cZL5slZRjHWkxkzw/QpCLLaQ8EpuJHKHlc2CjLX/Y2MEsRN2UfJmeXsBvGqAgc2skBg==
+length: 3708
 -->
