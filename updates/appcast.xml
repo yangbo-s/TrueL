@@ -6,6 +6,21 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>TrueL</title>
         <item>
+            <title>0.4.0</title>
+            <pubDate>Sun, 15 Nov 2026 20:44:42 -0500</pubDate>
+            <sparkle:version>12</sparkle:version>
+            <sparkle:shortVersionString>0.4.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[- 快速翻译与快速改写只显示结果，默认 Ctrl+C+C 和 Ctrl+A+A。
+- 快速结果按 Return 替换可编辑原选区；调整框中 Return 提交要求，绿色按钮跟随当前动作。
+- 普通翻译与改写改为左右对照，共用字号、行高、滚动边距及底栏尺寸。
+- 连续快捷键保留选区，未完成时归还原按键；保留自定义与已关闭的快捷键。
+- 快速和对照模式复用一个窗口，并分别记住手动调整的尺寸。
+]]></description>
+            <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.4.0/TrueL-0.4.0-arm64.dmg" length="2862348" type="application/octet-stream" sparkle:edSignature="wtqyoSwW6PnLsNtrQtOWPMm6HD5H0rihC9T+WHsKo/22siyajoCUYGLIqL1N/YAChIkzH8u2bLiGsEpOTXTYCA=="/>
+        </item>
+        <item>
             <title>0.3.3</title>
             <pubDate>Sun, 15 Nov 2026 19:59:55 -0500</pubDate>
             <sparkle:version>11</sparkle:version>
@@ -32,22 +47,9 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 ]]></description>
             <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.3.2/TrueL-0.3.2-arm64.dmg" length="2843343" type="application/octet-stream" sparkle:edSignature="OzE1zcfbqVlzNUDkdFhzrrQoWC2SQklSkTGro5j/FZ+7nYELgX71KXSCV1jngX6Y5IyLOJal35JBu3LcTEjADQ=="/>
         </item>
-        <item>
-            <title>0.3.1</title>
-            <pubDate>Sun, 15 Nov 2026 18:33:46 -0500</pubDate>
-            <sparkle:version>9</sparkle:version>
-            <sparkle:shortVersionString>0.3.1</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[- 保留六款字体轮廓图标，默认使用 3A。
-- 新增「图标」设置页，可立即切换 Dock 图标，重启后恢复所选样式。
-- 图标统一使用白色圆角底板，并保持合适的 Dock 留白。
-]]></description>
-            <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.3.1/TrueL-0.3.1-arm64.dmg" length="2781254" type="application/octet-stream" sparkle:edSignature="Kk0ts6iBIpkAgGYZVLmsDMiOND0r3rJmIfk/HMyxF9MWwlHr45xNicONQ8gildH+TZsSU13+1G+0VpXhwunmBw=="/>
-        </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: 37hJF1WLvOIuS+5Sm1i2O85Qta707v/vuJ0Mo8lPDLKA1vxB77E7DrKlUpyIBLZ+cr1GypZZFPrXUwDcS0bWDg==
-length: 3547
+edSignature: hYODUAOwcxGnrzwRfMrb5ZtfgGtmD+sPZzHca8+hkRQkKBRxyCnpr4i7K5d5UDFVaBi12SWy84A7cr9MFeCJDQ==
+length: 3814
 -->
