@@ -6,6 +6,18 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>TrueL</title>
         <item>
+            <title>0.3.3</title>
+            <pubDate>Sun, 15 Nov 2026 19:59:55 -0500</pubDate>
+            <sparkle:version>11</sparkle:version>
+            <sparkle:shortVersionString>0.3.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[- 原文、译文与改写结果统一正文字号，原文和译文共用行距。
+- 对齐上下文字区域及滚动条，统一滚动容器留白并跟随系统滚动条显示偏好。
+]]></description>
+            <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.3.3/TrueL-0.3.3-arm64.dmg" length="2850368" type="application/octet-stream" sparkle:edSignature="S9Plx96P7THH+T8bndTwYfZbCsg9puJn2+izgPFzfQiqLtWKWZCHcw7i72BXj2FVcq/fh4bal4+goNS/bUkVBA=="/>
+        </item>
+        <item>
             <title>0.3.2</title>
             <pubDate>Sun, 15 Nov 2026 19:32:47 -0500</pubDate>
             <sparkle:version>10</sparkle:version>
@@ -33,25 +45,9 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 ]]></description>
             <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.3.1/TrueL-0.3.1-arm64.dmg" length="2781254" type="application/octet-stream" sparkle:edSignature="Kk0ts6iBIpkAgGYZVLmsDMiOND0r3rJmIfk/HMyxF9MWwlHr45xNicONQ8gildH+TZsSU13+1G+0VpXhwunmBw=="/>
         </item>
-        <item>
-            <title>0.3.0</title>
-            <pubDate>Sun, 15 Nov 2026 17:03:43 -0500</pubDate>
-            <sparkle:version>8</sparkle:version>
-            <sparkle:shortVersionString>0.3.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[- Return 提交，Shift + Return 换行；输入法组词时先确认候选。
-- 主浮窗按模型系列列出可用的具体模型，选中后立即保存。
-- 翻译与改写分别配置模型，可使用不同系列的 API Key。
-- 旧模型配置自动迁移；未保存的设置不影响当前请求。
-- 新增应用内更新、自动检查开关，以及安装包和更新源的签名验证。
-- 统一紧凑的毛玻璃浮窗、设置表单、原生窗口控制和悬停反馈。
-]]></description>
-            <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.3.0/TrueL-0.3.0-arm64.dmg" length="1650768" type="application/octet-stream" sparkle:edSignature="muoQyhpVbr9fkO6H24LhxA/ncNJKh/UpuyL9FzxxXJ6GSjZ9RaManE8TTaxqMRr3DX+ON3VbNY0RERfrcTwMAA=="/>
-        </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: A/9wUdlesvfFxwBUgwmRGPsvpx+xR3X6NtmG0CALcNxfWtPZd3LprSErbPhb/YOjfTE4z5SFPnO3spjEXyOvBw==
-length: 3846
+edSignature: 37hJF1WLvOIuS+5Sm1i2O85Qta707v/vuJ0Mo8lPDLKA1vxB77E7DrKlUpyIBLZ+cr1GypZZFPrXUwDcS0bWDg==
+length: 3547
 -->
