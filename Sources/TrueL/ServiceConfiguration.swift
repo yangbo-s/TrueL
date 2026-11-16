@@ -25,6 +25,9 @@ final class ServiceConfiguration {
     private(set) var modelStatus: String?
     private(set) var isError = false
     private(set) var modelError = false
+    private(set) var isRestoringKey = false
+    private(set) var credentialAccessNeeded: Set<AIProvider> = []
+    var needsCredentialAccess: Bool { credentialAccessNeeded.contains(selectedProvider) }
 
     var canSaveKey: Bool { !normalizedKey.isEmpty && !isVerifying }
     var availableSelections: [ModelSelection] {
@@ -42,6 +45,7 @@ final class ServiceConfiguration {
     @ObservationIgnored private var providerGenerations: [AIProvider: UUID] = [:]
     @ObservationIgnored private var revision = UUID()
     @ObservationIgnored private var verificationTask: Task<[AIModelInfo], any Error>?
+    @ObservationIgnored private var restorationTask: Task<Void, Never>?
 
     private var normalizedKey: String { draftKey.trimmingCharacters(in: .whitespacesAndNewlines) }
     private static let providerPreference = "TrueL.ai.selectedProvider"
@@ -123,6 +127,7 @@ final class ServiceConfiguration {
         guard provider != selectedProvider else { return }
         invalidateVerification()
         selectedProvider = provider
+        draftKey = ""
         if persist { defaults.set(provider.rawValue, forKey: Self.providerPreference) }
         restoreProvider()
     }
@@ -135,9 +140,29 @@ final class ServiceConfiguration {
         status = "验证已取消"
     }
 
-    private func restoreProvider() {
+    func authorizeSavedKey() { restoreProvider(allowInteraction: true) }
+
+    private func restoreProvider(allowInteraction: Bool = false) {
+        restorationTask?.cancel()
+        let provider = selectedProvider
+        let expectedRevision = revision
+        isRestoringKey = true
+        restorationTask = Task { [weak self] in
+            await self?.loadProvider(provider, revision: expectedRevision, allowInteraction: allowInteraction)
+        }
+    }
+
+    private func loadProvider(_ provider: AIProvider, revision expectedRevision: UUID, allowInteraction: Bool) async {
+        defer { if revision == expectedRevision { isRestoringKey = false } }
         do {
-            draftKey = try credentialStore.key(for: selectedProvider) ?? ""
+            let saved = try await credentialStore.key(for: provider, allowInteraction: allowInteraction) ?? ""
+            try Task.checkCancellation()
+            guard revision == expectedRevision, selectedProvider == provider else { return }
+            credentialAccessNeeded.remove(provider)
+            // Restoring a saved value is not a user edit. It starts a fresh
+            // revision below, after the stale-response check has succeeded.
+            draftKey = saved
+            isRestoringKey = false
             guard !draftKey.isEmpty else { return }
             if verifiedKeys[selectedProvider] == normalizedKey, let available = catalogs[selectedProvider] {
                 models = available
@@ -148,33 +173,34 @@ final class ServiceConfiguration {
                 publishModels(AIProvider.glmCatalog, provider: .glm, key: normalizedKey)
                 status = "已载入 API Key"
             } else {
-                let expectedRevision = revision
-                Task { [weak self] in
-                    guard let self, self.revision == expectedRevision else { return }
-                    await self.verifyKey(save: false)
-                }
+                await verifyKey(save: false)
             }
+        } catch is CancellationError {
+            return
         } catch {
-            draftKey = ""
-            status = "无法读取钥匙串，请解锁后重新保存 API Key。"
+            guard revision == expectedRevision, selectedProvider == provider else { return }
+            credentialAccessNeeded.insert(provider)
+            status = (error as? CredentialStoreError)?.errorDescription ?? "无法读取已保存的 API Key，请重试。"
             isError = true
         }
     }
 
     private func restoreCatalog(_ provider: AIProvider) {
-        guard let key = try? credentialStore.key(for: provider), !key.isEmpty else { return }
-        if provider == .glm {
-            publishModels(AIProvider.glmCatalog, provider: provider, key: key)
-            return
-        }
         let generation = UUID()
         providerGenerations[provider] = generation
         Task { [weak self, client] in
+            guard let self else { return }
             do {
-                let available = try await client.listModels(provider: provider, apiKey: key)
-                guard let self, self.providerGenerations[provider] == generation, !available.isEmpty else { return }
+                guard let key = try await self.credentialStore.key(for: provider, allowInteraction: false), !key.isEmpty else { return }
+                guard self.providerGenerations[provider] == generation else { return }
+                let available = provider == .glm ? AIProvider.glmCatalog : try await client.listModels(provider: provider, apiKey: key)
+                guard self.providerGenerations[provider] == generation, !available.isEmpty else { return }
+                self.credentialAccessNeeded.remove(provider)
                 self.publishModels(available, provider: provider, key: key)
             } catch {
+                if error is CredentialStoreError, self.providerGenerations[provider] == generation {
+                    self.credentialAccessNeeded.insert(provider)
+                }
                 // Keep saved choices so a transient outage cannot erase preferences.
                 // An unverified account stays unavailable until the user retries in Settings.
             }
@@ -202,22 +228,25 @@ final class ServiceConfiguration {
             guard revision == expectedRevision, selectedProvider == provider, normalizedKey == key else { return }
             guard !available.isEmpty else { throw AIClientError.noModels }
             if save {
-                let previousKey: String?
+                let previousKey = verifiedKeys[provider]
                 do {
-                    previousKey = try credentialStore.key(for: provider)
-                    try credentialStore.save(key, for: provider)
+                    try await credentialStore.save(key, for: provider)
                 } catch {
+                    guard revision == expectedRevision else { return }
                     status = "API Key 验证通过，但无法保存到钥匙串。请解锁钥匙串后重试。"
                     isError = true
                     return
                 }
                 configuredProviders.insert(provider)
                 if persist { defaults.set(configuredProviders.map(\.rawValue).sorted(), forKey: "TrueL.ai.configuredProviders") }
-                if previousKey != nil, previousKey != key {
+                credentialAccessNeeded.remove(provider)
+                if previousKey != key {
                     for mode in WorkMode.allCases where selection(for: mode)?.provider == provider { clearSelection(for: mode) }
                     persistSelections()
                 }
             }
+            try Task.checkCancellation()
+            guard revision == expectedRevision, selectedProvider == provider, normalizedKey == key else { return }
             publishModels(available, provider: provider, key: key)
             status = save ? "API Key 已保存" : "API Key 已验证"
             isError = false
@@ -250,6 +279,9 @@ final class ServiceConfiguration {
 
     private func invalidateVerification() {
         revision = UUID()
+        // Revision checks reject late credential replies without cancelling a
+        // restore task that is itself publishing a freshly restored value.
+        isRestoringKey = false
         verificationTask?.cancel()
         verificationTask = nil
         isVerifying = false

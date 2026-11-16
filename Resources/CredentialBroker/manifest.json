@@ -1,0 +1,12 @@
+{
+  "revision": 3,
+  "signerSHA1": "6abcbe9ab6b610e27964784de751c9ad2d23698e",
+  "sources": {
+    "Sources/CredentialCore/CredentialProtocol.swift": "57259feac9672b7c637d247533a75838c380b4bdf3a03028708b8665fcc2727a",
+    "Sources/CredentialCore/MigratingCredentialVault.swift": "1f0c7049fef198a6ca0dc7011e60f409bf8af8b48989a39e6913b973b82f64ed",
+    "Helpers/CredentialBroker/main.swift": "0477f0b6a7c7c0aad797d00aafadeaf4508b532441c2648b3b406b29a9a22ec0"
+  },
+  "cdhash": "47fd00ec57231d9685aede03ea335e1eecc405d8",
+  "requirement": "identifier \"com.truel.CredentialBroker\" and certificate leaf = H\"6abcbe9ab6b610e27964784de751c9ad2d23698e\" and cdhash H\"47fd00ec57231d9685aede03ea335e1eecc405d8\"",
+  "bundleSHA256": "1a6ec66958b98aa5a803e4148d315433c8ebaff86eb6e3c30af1c28147b77edc"
+}

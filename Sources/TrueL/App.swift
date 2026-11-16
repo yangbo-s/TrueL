@@ -42,7 +42,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     init(preview: Bool) {
         let client: any AIClientProtocol = preview ? PreviewAIClient() : AIClient()
-        let configuration = ServiceConfiguration(persist: !preview, client: client)
+        let credentials: (any CredentialStore)? = preview && ProcessInfo.processInfo.environment["APP_SNAPSHOT_SCOPE"] == "credentials"
+            ? PreviewLockedCredentialStore() : nil
+        let configuration = ServiceConfiguration(persist: !preview, client: client, credentialStore: credentials)
         updater = AppUpdater(enabled: !preview)
         service = configuration
         preferences = Preferences(persist: !preview)

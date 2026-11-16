@@ -10,3 +10,12 @@ struct PreviewAIClient: AIClientProtocol {
         "把复杂的想法，写得清楚一点。"
     }
 }
+
+@MainActor
+final class PreviewLockedCredentialStore: CredentialStore {
+    func key(for provider: AIProvider, allowInteraction: Bool) throws -> String? {
+        guard allowInteraction else { throw CredentialStoreError(status: -25293) }
+        return "snapshot-only-placeholder"
+    }
+    func save(_ key: String, for provider: AIProvider) throws {}
+}

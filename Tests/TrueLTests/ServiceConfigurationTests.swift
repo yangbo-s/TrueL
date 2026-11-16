@@ -108,6 +108,7 @@ struct ServiceConfigurationTests {
         defaults.set(["glm": "glm-4.7-flash"], forKey: "TrueL.ai.savedModels")
         let credentials = MemoryCredentialStore(keys: [.glm: "old-key"])
         let service = ServiceConfiguration(persist: true, client: FixedClient(), credentialStore: credentials, defaults: defaults)
+        await waitForRestore(service)
         for mode in WorkMode.allCases { #expect(try service.configuration(for: mode).modelID == "glm-4.7-flash") }
         // Explicit new preferences take precedence over legacy entries on all later launches.
         defaults.set(try JSONEncoder().encode([String: ModelSelection]()), forKey: "TrueL.ai.taskModels.v1")
@@ -167,11 +168,13 @@ struct ServiceConfigurationTests {
         let client = GateClient()
         let service = ServiceConfiguration(persist: true, client: client,
             credentialStore: MemoryCredentialStore(keys: [.glm: "previously-verified-key"]), defaults: defaults)
+        await waitForRestore(service)
         #expect(service.isKeyVerified)
         #expect(service.isReady(for: .translation))
         #expect(service.status == "已载入 API Key")
         service.switchProvider(.gemini)
         service.switchProvider(.glm)
+        await waitForRestore(service)
         #expect(service.isReady(for: .translation))
         await Task.yield()
         #expect(await client.requestCount == 0)
@@ -289,6 +292,13 @@ private actor GateClient: AIClientProtocol {
 
 @MainActor
 private final class FailingCredentialStore: CredentialStore {
-    func key(for provider: AIProvider) throws -> String? { nil }
+    func key(for provider: AIProvider, allowInteraction: Bool) throws -> String? { nil }
     func save(_ key: String, for provider: AIProvider) throws { throw CredentialStoreError(status: -25293) }
+}
+
+@MainActor
+private func waitForRestore(_ service: ServiceConfiguration) async {
+    let deadline = ContinuousClock.now + .seconds(2)
+    while service.isRestoringKey, ContinuousClock.now < deadline { await Task.yield() }
+    #expect(!service.isRestoringKey)
 }

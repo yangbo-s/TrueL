@@ -66,9 +66,15 @@ def verify(app):
     details = run("/usr/bin/codesign", "-dvv", str(app))
     if identity_kind() == "apple" and not re.search(r"^TeamIdentifier=[A-Z0-9]{10}$", details, re.MULTILINE):
         raise RuntimeError("Missing Apple Team ID; login-keychain access cannot be stable across updates.")
+    info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
+    if "TrueLCredentialBrokerRequirement" in info:
+        import credential_broker
+        credential_broker.verify_embedded(app)
 
 
 def sign(app):
+    import credential_broker
+    credential_broker.verify_embedded(app)
     framework = app / "Contents/Frameworks/Sparkle.framework"
     if framework.exists():
         version = framework / "Versions/B"
@@ -81,6 +87,7 @@ def sign(app):
     run("/usr/bin/codesign", "--force", "--sign", identity(), "--timestamp=none",
         "--requirements", "=designated => " + requirement(app), str(app))
     verify(app)
+    credential_broker.verify_embedded(app)
 
 
 def available_identities(self_signed=False):

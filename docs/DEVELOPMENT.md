@@ -24,6 +24,19 @@ python3 tools/signing.py setup --self-signed --identity <证书SHA-1>
 
 证书选择保存在 `~/Library/Application Support/TrueL/Signing/identity.json`，可通过 `TRUEL_SIGNING_CONFIG` 指定其他本地配置。连续发布使用同一个身份与应用标识。Sparkle 内嵌组件按从内到外的顺序签名。
 
+凭据组件是例外：`Resources/CredentialBroker` 保存已封存的签名产物，普通构建只校验和复制，不重新编译或签名。源码、产物或证书不匹配时构建停止。组件确需升级或使用自己的签名证书构建时，审阅改动后显式运行 `python3 tools/credential_broker.py seal --revision <大于当前值的整数>`；这会改变组件身份，必须重新测试凭据迁移。不要在发布脚本中自动执行 seal。
+
+凭据回归：
+
+```sh
+python3 tools/test-credential-packaging.py
+python3 tools/test-credential-continuity.py
+```
+
+后者使用登录钥匙串中的 UUID 测试条目与临时更新签名密钥，在本机临时目录执行两次实际 Sparkle 安装、重启及非交互读取，同时验证错误应用标识、证书和组件被拒绝。不会读取真实 API Key、替换 `/Applications/TrueL.app` 或使用发布私钥；成功后清理测试条目、密钥、测试应用和独立偏好域，证据保存在 `artifacts/credential-continuity`。失败时保留测试目录用于诊断。
+
+迁移入口截图：`APP_SNAPSHOT_SCOPE=credentials ./tools/snap.sh`，覆盖浅深外观下待授权和已恢复两种状态，使用模拟凭据。
+
 构建输出为 `build/TrueL.app`。退出当前 TrueL 后安装：
 
 ```sh

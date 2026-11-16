@@ -10,6 +10,10 @@ extension AppDelegate {
     }
 
     func takeSnapshots(directory: String) async {
+        if ProcessInfo.processInfo.environment["APP_SNAPSHOT_SCOPE"] == "credentials" {
+            await takeCredentialSnapshots(directory: directory)
+            return
+        }
         service.draftKey = "snapshot-only-placeholder"
         await service.saveKey()
         selectPreviewModels()
@@ -193,6 +197,29 @@ extension AppDelegate {
         } else {
             NSApp.terminate(nil)
         }
+    }
+
+    private func takeCredentialSnapshots(directory: String) async {
+        let folder = URL(fileURLWithPath: directory)
+        do { try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true) }
+        catch { NSApp.terminate(nil); return }
+        var results: [[String: String]] = []
+        for scheme in ["light", "dark"] {
+            preferences.appearance = scheme
+            NSApp.appearance = NSAppearance(named: scheme == "dark" ? .darkAqua : .aqua)
+            service.switchProvider(.openAI)
+            service.switchProvider(.gemini)
+            showSettings(page: .service)
+            await pause()
+            results.append(capture(settings!, name: "credentials-locked-\(scheme)", folder: folder))
+            service.authorizeSavedKey()
+            await pause()
+            results.append(capture(settings!, name: "credentials-restored-\(scheme)", folder: folder))
+        }
+        let data = try? JSONSerialization.data(withJSONObject: results, options: [.prettyPrinted, .sortedKeys])
+        try? data?.write(to: folder.appendingPathComponent("captures.json"))
+        fputs("SNAPSHOT done \(directory)\n", stderr)
+        NSApp.terminate(nil)
     }
 
     private func pause(milliseconds: Int = 650) async {

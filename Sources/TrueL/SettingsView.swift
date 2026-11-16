@@ -230,6 +230,11 @@ private struct ServiceSettings: View {
                     keyField
                 }
                 HStack {
+                    if service.needsCredentialAccess {
+                        Button("读取已存 Key") { service.authorizeSavedKey() }
+                            .buttonStyle(TrueLButtonStyle(role: .secondary))
+                            .disabled(service.isRestoringKey || service.isVerifying)
+                    }
                     Spacer(minLength: 0)
                     Button {
                         Task { await service.saveKey() }

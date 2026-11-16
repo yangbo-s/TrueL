@@ -4,6 +4,7 @@ cd "$(dirname "$0")"
 config=release
 if [[ " ${*:-} " == *" --debug "* ]]; then config=debug; fi
 python3 tools/signing.py check
+python3 tools/credential_broker.py verify
 mkdir -p build .build/cache .build/config .build/security .build/modules
 export CLANG_MODULE_CACHE_PATH="$PWD/.build/modules"
 export SWIFTPM_MODULECACHE_OVERRIDE="$PWD/.build/modules"
@@ -24,6 +25,7 @@ rm -rf "$app/Contents/Frameworks/Sparkle.framework"
 cp THIRD_PARTY_NOTICES.md "$app/Contents/Resources/THIRD_PARTY_NOTICES.md"
 cp Resources/Assets.car Resources/AppIcon.icns "$app/Contents/Resources/"
 /usr/bin/ditto Resources/AppIcons "$app/Contents/Resources/AppIcons"
+python3 tools/credential_broker.py embed "$app"
 python3 tools/signing.py sign "$app"
 echo "Built $app"
 if [[ " ${*:-} " == *" --open "* ]]; then ./tools/install-local.sh --open; fi

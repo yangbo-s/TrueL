@@ -12,7 +12,8 @@
 | DemoModel / LanguageEngine | 编辑状态、取消、翻译和改写请求、结果解析 |
 | ServiceConfiguration | 账号验证、模型目录、按任务保存选择及旧配置迁移 |
 | AIClient / AIProvider | 固定服务端点、鉴权、分页目录、文本生成和安全错误信息 |
-| CredentialStore | macOS 钥匙串 API Key；测试用内存实现 |
+| CredentialStore / CredentialBrokerClient | 异步调用固定 XPC 凭据组件；测试用内存实现 |
+| CredentialCore / TrueLCredentialBroker | 双向认证、串行钥匙串访问与旧条目迁移；普通更新原样保留组件 |
 | ShortcutStore / ShortcutMonitor | 组合键与连续按键录制、冲突检查、全局匹配 |
 | SelectionBridge / SelectionReplacementContext | 获取选区、来源有效性和安全替换 |
 | AppUpdater | Sparkle 控制器、更新菜单与自动检查偏好 |
@@ -35,6 +36,12 @@
 目录可分页，最多 50 页；重复页 token 和无效响应被拒绝。服务端 401、403、429、超时、内容拦截、截断及空响应均有独立错误。
 
 ## 更新与凭据
+
+生产凭据仅由 `TrueLCredentialBroker.xpc` 访问。主程序验证组件的证书、标识与 CDHash；组件通过 XPC 的调用方签名验证限制为同证书的 TrueL，且仅接受同一用户。组件加入调用方安全会话，并在串行队列设置文件钥匙串的交互策略。
+
+启动、切换服务商及后台目录恢复均异步读取，禁止主动弹出系统授权框。需要授权时，AI 服务页提供「读取已存 Key」入口。旧 `com.truel.provider-api-key` 条目获准读取后，原子插入 `com.truel.credentials.v1` 并读回校验；保留旧条目供回退。新条目存在时不再访问旧条目；并发保存的新 Key 优先于迁移的旧值。取消、超时及 XPC 中断不会退回主程序直接读钥匙串。
+
+组件的源码摘要、签名证书、CDHash 和完整产物摘要由 `Resources/CredentialBroker/manifest.json` 固定。正常构建只复制已有签名产物，绝不重签这个组件；变化必须显式封存新 revision 并重新验证授权迁移。详见 [凭据延续验收](CREDENTIAL-CONTINUITY.md)。
 
 发布元数据集中在 `Config/release.json`。构建写入版本、HTTPS feed URL 和 Ed25519 公钥，保留应用 bundle identifier。Sparkle Framework 由 SwiftPM 固定版本，内层可执行文件先签名，再签 Framework 和应用。
 
