@@ -32,7 +32,11 @@ DMG 挂载后签名验证通过，183 个 bundle 条目与构建产物一致；D
 ca7f0ec8ffa71d6de863782f2788ea07d048f64a17dc2fa3e73ac4b9197fb4ed
 ```
 
-公开发布：本地验收通过，源码、安装包和更新源正按发布流程交付；公开回读结果在发布后补记。
+## 公开发布
+
+源码提交 `fa767a6e70d821f323d3315029a798b897157d85` 已快进推送至 `main`，`v0.4.0` 指向该提交；更新源提交为 `1440f38ce6b2a1ead163fe8660ff9d978e0d7846`。
+
+[TrueL 0.4.0](https://github.com/yangbo-s/TrueL/releases/tag/v0.4.0) 已是 GitHub 最新正式版本，包含 [DMG](https://github.com/yangbo-s/TrueL/releases/download/v0.4.0/TrueL-0.4.0-arm64.dmg) 与 `SHA256SUMS`。匿名下载的两个文件与本地字节一致，DMG Ed25519 验签通过。公开 HTTPS feed 与准备阶段的签名文件完全相同；实际 Sparkle 读取到 build 12、11、10，旧 build 11 发现 12，build 12 显示已是最新。日志：`artifacts/release-0.4.0/public-release-check.log`、`public-update-check.log` 与 `public-update-results.json`。
 
 ## 验证范围
 
@@ -40,7 +44,7 @@ ca7f0ec8ffa71d6de863782f2788ea07d048f64a17dc2fa3e73ac4b9197fb4ed
 
 未退出、替换或重启用户日常使用的应用。非复制连续快捷键的前缀在等待第二次按键时有最长 1 秒的延迟；未完成时归还，这是保留 Ctrl+A 原选区所需的行为。
 
-## 本地证据评分：94 / 100
+## 证据评分：96 / 100
 
 | 维度 | 分数 | 依据 |
 | --- | --- | --- |
@@ -49,4 +53,4 @@ ca7f0ec8ffa71d6de863782f2788ea07d048f64a17dc2fa3e73ac4b9197fb4ed
 | 测试充分性 | 16 / 20 | 141 项 Swift 测试、6 项原生探针、122 张截图、两次隔离升级；扣分对应未测系统 / 屏幕、完整无障碍与第三方应用覆盖 |
 | 架构与接口 | 10 / 10 | 复用单窗口、结果和服务组件，焦点与主操作同源，无新依赖 |
 | 代码、安全与维护 | 10 / 10 | 差异与网格检查通过，真实来源严格验证，固定凭据组件不变 |
-| 文档与交付 | 8 / 10 | 设计、使用、开发、架构和 README 截图同步；公开产物回读尚待发布后完成 |
+| 文档与交付 | 10 / 10 | 设计、使用、开发、架构和 README 截图同步；源码、安装包和签名更新源已推送并公开回读验证 |
