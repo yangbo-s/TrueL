@@ -6,6 +6,21 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>TrueL</title>
         <item>
+            <title>0.3.2</title>
+            <pubDate>Sun, 15 Nov 2026 19:32:47 -0500</pubDate>
+            <sparkle:version>10</sparkle:version>
+            <sparkle:shortVersionString>0.3.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[- 凭据改由固定签名组件管理，避免普通主程序更新触发重复钥匙串授权。
+- 启动时异步读取凭据；需要首次迁移或解锁时，在 AI 服务页点击「读取已存 Key」。
+- 保留旧 Key 供回退，迁移失败或取消不会覆盖已有凭据。
+
+从旧版升级后，若 AI 服务页显示「读取已存 Key」，点击它完成首次迁移；macOS 可能需要你确认一次授权。
+]]></description>
+            <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.3.2/TrueL-0.3.2-arm64.dmg" length="2843343" type="application/octet-stream" sparkle:edSignature="OzE1zcfbqVlzNUDkdFhzrrQoWC2SQklSkTGro5j/FZ+7nYELgX71KXSCV1jngX6Y5IyLOJal35JBu3LcTEjADQ=="/>
+        </item>
+        <item>
             <title>0.3.1</title>
             <pubDate>Sun, 15 Nov 2026 18:33:46 -0500</pubDate>
             <sparkle:version>9</sparkle:version>
@@ -37,6 +52,6 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: c59D1zxjy1Izz1SsXiXI5gAIpxAIGw6W9O6vc3nqkuP0CepucA4dJ5MiC1n91Ih0zlI/114rjKq+PAeu0kXDCA==
-length: 2656
+edSignature: A/9wUdlesvfFxwBUgwmRGPsvpx+xR3X6NtmG0CALcNxfWtPZd3LprSErbPhb/YOjfTE4z5SFPnO3spjEXyOvBw==
+length: 3846
 -->
