@@ -25,6 +25,7 @@ enum AppIconStyle: String, CaseIterable, Identifiable {
 @MainActor
 enum AppIconAssets {
     private static var previews: [AppIconStyle: NSImage] = [:]
+    private static var marks: [String: NSImage] = [:]
 
     static func image(for style: AppIconStyle, preview: Bool = false,
                       resourceURL: URL? = Bundle.main.resourceURL) -> NSImage? {
@@ -39,6 +40,15 @@ enum AppIconAssets {
         if let image = previews[style] { return image }
         let image = image(for: style, preview: true)
         previews[style] = image
+        return image
+    }
+
+    static func mark(for style: AppIconStyle, accent: Bool) -> NSImage? {
+        let file = "\(style.rawValue)-mark-\(accent ? "accent" : "ink").svg"
+        if let image = marks[file] { return image }
+        guard let url = Bundle.main.resourceURL?.appendingPathComponent("AppIcons").appendingPathComponent(file),
+              let image = NSImage(contentsOf: url), image.isValid else { return nil }
+        marks[file] = image
         return image
     }
 }

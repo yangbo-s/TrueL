@@ -113,7 +113,7 @@ struct PopupView: View {
     }
 
     private var header: some View {
-        WindowChrome(dragIdentifier: "TrueL.main.drag") {
+        WindowChrome(appIcon: preferences.appIcon, dragIdentifier: "TrueL.main.drag") {
             HStack(spacing: 4) {
                 if model.accepted {
                     PopupGlyph(.check, size: TypeScale.inlineSymbol)

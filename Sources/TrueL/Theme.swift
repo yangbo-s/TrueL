@@ -58,6 +58,7 @@ enum BodyTextStyle {
 
 enum WindowChromeMetrics {
     static let height: CGFloat = 52
+    static let brandIconSize: CGFloat = 20
     static let contentGap: CGFloat = 0
     static let trafficLightFirstCenter: CGFloat = 20
     static let trafficLightPitch: CGFloat = 20
@@ -145,6 +146,7 @@ struct TrueLWordmark: View {
 
 /// The native traffic lights occupy the left slot; title and tools share their centre line.
 struct WindowChrome<Trailing: View>: View {
+    var appIcon: AppIconStyle
     var title: String? = nil
     var dragIdentifier = "TrueL.windowDragRegion"
     @ViewBuilder var trailing: Trailing
@@ -152,10 +154,23 @@ struct WindowChrome<Trailing: View>: View {
         ZStack {
             WindowDragRegion(identifier: dragIdentifier)
                 .padding(.leading, WindowChromeMetrics.leadingContentInset).padding(.trailing, 104)
-            Group {
+            HStack(spacing: SurfaceMetrics.relatedGap) {
+                if let ink = AppIconAssets.mark(for: appIcon, accent: false),
+                   let accent = AppIconAssets.mark(for: appIcon, accent: true) {
+                    ZStack {
+                        Image(nsImage: ink).renderingMode(.template).resizable().foregroundStyle(Theme.text)
+                        Image(nsImage: accent).renderingMode(.template).resizable().foregroundStyle(Theme.accent)
+                    }
+                    .frame(width: WindowChromeMetrics.brandIconSize, height: WindowChromeMetrics.brandIconSize)
+                    .accessibilityHidden(true)
+                }
                 if let title { Text(title).font(.system(size: TypeScale.value, weight: .medium)).foregroundStyle(Theme.text) }
                 else { TrueLWordmark(size: TypeScale.value) }
             }
+            .fixedSize()
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(title ?? "TrueL")
+            .accessibilityIdentifier("TrueL.windowBrand")
             .allowsHitTesting(false)
             HStack(spacing: 0) {
                 Spacer(minLength: WindowChromeMetrics.leadingContentInset)

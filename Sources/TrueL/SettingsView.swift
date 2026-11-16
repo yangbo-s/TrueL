@@ -37,7 +37,7 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            WindowChrome(title: "TrueL 设置", dragIdentifier: "TrueL.settings.drag") { EmptyView() }
+            WindowChrome(appIcon: preferences.appIcon, title: "TrueL 设置", dragIdentifier: "TrueL.settings.drag") { EmptyView() }
             HStack(spacing: 4) {
                 ForEach(SettingsPage.allCases) { item in
                     Button { page = item } label: {
@@ -158,7 +158,7 @@ struct SettingsView: View {
                 .accessibilityIdentifier("TrueL.icon.\(style.rawValue)")
                 .accessibilityLabel("\(style.rawValue)，\(style.title)")
                 .accessibilityAddTraits(preferences.appIcon == style ? .isSelected : [])
-                .help(style == .defaultStyle ? "默认应用图标" : "切换 Dock 图标")
+                .help(style == .defaultStyle ? "默认应用图标与窗口标识" : "切换 Dock 图标与窗口标识")
             }
         }
         .padding(SurfaceMetrics.inset)

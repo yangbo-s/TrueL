@@ -27,7 +27,7 @@
     "tool:actool": "/Applications/Xcode.app/Contents/Developer/usr/bin/actool:92416:1792468964000000000",
     "tool:ictool": "/Applications/Xcode.app/Contents/Applications/Icon Composer.app/Contents/Executables/ictool:95040:1792541134000000000",
     "tools/icon-assets.swift": "d2077a2d460b9afef5c1757d06a8a4c93d1dfb07636eaaf0219a2b59c8cd1a0d",
-    "tools/make-icons.py": "682de0bb6f4c80bdd78598fb109c8b599dc156f59781e0e90e6058f0d7d79a96"
+    "tools/make-icons.py": "14b3ac9146d87be6476e427fd1906b6feba01309788388bdeb9e80d1115555ff"
   },
   "nativeInfo": {
     "CFBundleIconFile": "AppIcon",
@@ -35,18 +35,30 @@
   },
   "outputs": {
     "AppIcon.icns": "c25ec35fc71ecf45359e08e12dfcea9834eb12da5f1951905aad668221c26cdc",
+    "AppIcons/1A-mark-accent.svg": "ccce79fac7d6834d3594665523f7ba667c4bbef2125d3865e057b4bad49dc71a",
+    "AppIcons/1A-mark-ink.svg": "378c0130fa237e649ed78cd31f96f1e07797a73b59278c4317be613e30a16c96",
     "AppIcons/1A-preview.png": "a6e2ace949812db4fee9ed9a6da49354b9b8ff5ea01302be6b5c213dddd7297a",
     "AppIcons/1A.png": "5827b62e20861ac8a5dd2bbb21df685d5f29295b7492e22e62dc5d6d0f6b348c",
+    "AppIcons/1B-mark-accent.svg": "6169605ce3526c744ac55ea3abe5d31f8ecf7f6509de6ffd60449b4742ae0373",
+    "AppIcons/1B-mark-ink.svg": "c8abcf8f03e0f0d32ee5b5f90f3e07f39179814dd9b3792165ddd861c632a30d",
     "AppIcons/1B-preview.png": "2d89d40fc58b9e72c91834a3e3c43b33f6504dd29ecfa153af7f0e09e5cacbc7",
     "AppIcons/1B.png": "f11bfb77a24e0eef36993ffeaea8277612da67653ada41bcf3bcf8b8fb799121",
+    "AppIcons/1C-mark-accent.svg": "bb88b9d6d019333a3cd1f5f47004af0cc45b5be2f5ba1d7c9a2abc0eaaf72fee",
+    "AppIcons/1C-mark-ink.svg": "dabac4dbf7dbc816f8a9461dfae9f2c51aec6e37d5fcf31667196b053980746e",
     "AppIcons/1C-preview.png": "02e0e85163c7fdd971d9a601220387fb594b6e09775d7e8697ef006248fd61c0",
     "AppIcons/1C.png": "5c29237b16005bc8bb5a3cb51640fd6a7d4bede263e67451bad27eb51a88dc2e",
+    "AppIcons/3A-mark-accent.svg": "cb17db14c75e2d85832b8ea72882b5549e2bae11352dec31e02e0517452f0b2a",
+    "AppIcons/3A-mark-ink.svg": "502034334b5a5ed739d4431f6b81a62e1198bf497479d72e5aab9d2c0f562a63",
     "AppIcons/3A-preview.png": "6e265a70a1175f6f0bfdcb2720a037e6e5fb9d4d41824f99a7f63c929df8257d",
     "AppIcons/3A.png": "cc5fbd3f8ab0d5ffc2204c0fac3acac58256a09021ab1f98f38e635d6a80d00f",
+    "AppIcons/3B-mark-accent.svg": "3c29eecb965f40d2957abddddfdc1b7beffbe24f99c35a425eb9c8addde5cc57",
+    "AppIcons/3B-mark-ink.svg": "54a2ed264aa22c8e72e4e7ea605343d6645b5c64e6d0226d0b45cbd1a330fd25",
     "AppIcons/3B-preview.png": "ddbdaa1a2768825b17f3e87682f3d9930f1c7679c2bb42fb752b09c6d3b41ede",
     "AppIcons/3B.png": "bb19cec4735a9dc5d1fc605c4be8f7d8d7ea3eadb7e72d6f02d69d17b33d9367",
+    "AppIcons/3C-mark-accent.svg": "7eb41be8fabf3896462eb9a7adab2b0d2a968791771c72210abc6b666fec20ca",
+    "AppIcons/3C-mark-ink.svg": "47102c3aa79d4f1958823a3ea37bb5bc5aa08da6d0de4451d32e24ec04aaa91a",
     "AppIcons/3C-preview.png": "8df7d8b8b42e72b4dc5b6fd31933413b1060d18e31be79d7844bfd061cdd3f2a",
     "AppIcons/3C.png": "820fbb128c0cd0f2e654fb37b8539c6011870f056acb001c74214afce33b52a0",
-    "Assets.car": "03b401952e783f25c660e37e3a3479203c66c69fa4ef884b709f70248ff47c9d"
+    "Assets.car": "1cdbb1b89f2d3fd4c538c93dbd2c95e3e1fb055eb7b530bc113ec9676222b46f"
   }
 }

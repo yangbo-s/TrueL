@@ -82,6 +82,28 @@ struct AppIconTests {
         #expect((rep.colorAt(x: 256, y: 256)?.alphaComponent ?? 0) > 0.9)
     }
 
+    @Test(arguments: AppIconStyle.allCases)
+    func windowMarksHaveTransparentCornersAndVisibleGlyphLayers(_ style: AppIconStyle) throws {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        for layer in ["ink", "accent"] {
+            let url = root.appendingPathComponent("Resources/AppIcons/\(style.rawValue)-mark-\(layer).svg")
+            let image = try #require(NSImage(contentsOf: url))
+            let cgImage = try #require(image.cgImage(forProposedRect: nil, context: nil, hints: nil))
+            let bitmap = NSBitmapImageRep(cgImage: cgImage)
+            for (x, y) in [(0, 0), (0, bitmap.pixelsHigh - 1), (bitmap.pixelsWide - 1, 0),
+                           (bitmap.pixelsWide - 1, bitmap.pixelsHigh - 1)] {
+                #expect(try #require(bitmap.colorAt(x: x, y: y)).alphaComponent == 0)
+            }
+            var visibleSamples = 0
+            for y in stride(from: 0, to: bitmap.pixelsHigh, by: 8) {
+                for x in stride(from: 0, to: bitmap.pixelsWide, by: 8) {
+                    if (bitmap.colorAt(x: x, y: y)?.alphaComponent ?? 0) > 0.5 { visibleSamples += 1 }
+                }
+            }
+            #expect(visibleSamples > 5, "\(style.rawValue) \(layer) lost its glyph")
+        }
+    }
+
     private func validImage() -> NSImage {
         NSImage(size: NSSize(width: 16, height: 16), flipped: false) { rect in
             NSColor.white.setFill(); rect.fill(); return true

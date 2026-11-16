@@ -9,6 +9,7 @@ import plistlib
 import shutil
 import subprocess
 import tempfile
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parent.parent
 RESOURCES = ROOT / "Resources"
@@ -69,6 +70,15 @@ def render(ictool, master, output, rendition="Default"):
         "--width", "412", "--height", "412", "--scale", "1")
 
 
+def window_mark(source, destination):
+    # Reuse the approved glyph layers, without the app icon's backing or Dock
+    # margins. Both layers keep the same viewport so tinting preserves overlap.
+    ET.register_namespace("", "http://www.w3.org/2000/svg")
+    document = ET.parse(source)
+    document.getroot().attrib.update(width="608", height="608", viewBox="208 208 608 608")
+    document.write(destination, encoding="utf-8", xml_declaration=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="verify source and output hashes without rebuilding")
@@ -91,6 +101,7 @@ def main():
     expected = ["Assets.car", "AppIcon.icns"]
     for variant in config["variants"]:
         expected.extend([f"AppIcons/{variant}.png", f"AppIcons/{variant}-preview.png"])
+        expected.extend(f"AppIcons/{variant}-mark-{layer}.svg" for layer in ("ink", "accent"))
     current = is_current(fingerprint, expected)
     if args.check:
         if not current:
@@ -126,6 +137,8 @@ def main():
                 render(ictool, source, raw)
                 run(helper, "prepare", raw, generated / f"AppIcons/{variant}.png",
                     generated / f"AppIcons/{variant}-preview.png")
+                for layer in ("ink", "accent"):
+                    window_mark(source / "Assets" / f"{layer}.svg", generated / f"AppIcons/{variant}-mark-{layer}.svg")
             print(run(helper, "validate", *(generated / f"AppIcons/{v}.png" for v in config["variants"])))
             for relative in expected:
                 destination = RESOURCES / relative

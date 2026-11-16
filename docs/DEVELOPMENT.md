@@ -60,7 +60,7 @@ python3 tools/check-layout.py artifacts/screenshots
 
 已具备辅助功能和输入监控权限的开发终端可运行 `./tools/check-quick-workflows.sh`。它编译并启动独立测试窗口，真实发送 Ctrl+A+A / Ctrl+C+C，验证结果窗激活后的 AX 替换、超时归还按键、选区变化、来源关闭与只读拒写。仅操作自建窗口，完成后关闭，不读取用户文档和 Key。
 
-图标母版保存在 `design/logo-refinements/native`，默认原生图标为 `Icon/AppIcon.icon`。`build.sh` 调用 `python3 tools/make-icons.py`，按内容哈希缓存编译产物。`Resources` 中保留可审查的资源，`python3 tools/make-icons.py --check` 验证是否与母版一致。
+图标母版保存在 `design/logo-refinements/native`，默认原生图标为 `Icon/AppIcon.icon`。`build.sh` 调用 `python3 tools/make-icons.py`，按内容哈希缓存编译产物。`Resources` 中保留可审查的资源，`python3 tools/make-icons.py --check` 验证是否与母版一致。顶栏复用母版的 ink/accent 两层透明 SVG，统一收紧视口并分别着色；Dock 图标仍使用完整底板与留白。
 
 逐款切换验收可运行 `APP_SNAPSHOT_SCOPE=icons ./tools/snap.sh`，再执行 `python3 tools/check-layout.py artifacts/screenshots --icons`。
 
