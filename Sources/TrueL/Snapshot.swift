@@ -36,6 +36,10 @@ extension AppDelegate {
             await takeWorkflowSnapshots(directory: directory)
             return
         }
+        if ProcessInfo.processInfo.environment["APP_SNAPSHOT_SCOPE"] == "translation-streaming" {
+            await takeTranslationStreamingSnapshots(directory: directory)
+            return
+        }
         preferences.alwaysOnTop = false
         let folder = URL(fileURLWithPath: directory)
         do { try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true) }
@@ -221,6 +225,29 @@ extension AppDelegate {
         }
     }
 
+    private func takeTranslationStreamingSnapshots(directory: String) async {
+        let folder = URL(fileURLWithPath: directory)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        var records: [[String: String]] = []
+        let source = Array(repeating: "Reading helps us understand complex ideas and communicate clearly.", count: 8).joined(separator: "\n\n")
+        for scheme in ["light", "dark"] {
+            preferences.appearance = scheme
+            NSApp.appearance = NSAppearance(named: scheme == "dark" ? .darkAqua : .aqua)
+            for presentation in [PopupPresentation.quick, .workspace] {
+                beginInput(source, mode: .translation, canReplaceSelection: true, presentation: presentation)
+                await pause(milliseconds: 1_800)
+                records.append(capture(panel, name: "\(presentation.rawValue)-translation-streaming-\(scheme)", folder: folder))
+                model.showPreviewResult()
+                await pause()
+                records.append(capture(panel, name: "\(presentation.rawValue)-translation-result-\(scheme)", folder: folder))
+            }
+        }
+        let data = try? JSONSerialization.data(withJSONObject: records, options: [.prettyPrinted, .sortedKeys])
+        try? data?.write(to: folder.appendingPathComponent("captures.json"))
+        fputs("SNAPSHOT done \(directory)\n", stderr)
+        NSApp.terminate(nil)
+    }
+
     private func takeWorkflowSnapshots(directory: String) async {
         let folder = URL(fileURLWithPath: directory)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -394,6 +421,7 @@ extension AppDelegate {
                 "focus": String(describing: session.focus),
                 "isProcessing": String(model.isProcessing),
                 "hasResult": String(model.hasResult),
+                "outputCharacters": String(model.output.count),
                 "canSubmit": String(model.canSubmit),
                 "scrollCount": String(window.contentView.map { scrollViews(in: $0).count } ?? 0),
                 "windowNumber": String(window.windowNumber),

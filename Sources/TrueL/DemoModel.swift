@@ -219,7 +219,11 @@ final class DemoModel {
         let token = generation
         work = Task { [weak self] in
             do {
-                let result = try await engine.perform(request)
+                let result = try await engine.perform(request) { [weak self] text in
+                    try Task.checkCancellation()
+                    guard let self, self.generation == token else { throw CancellationError() }
+                    self.output = text
+                }
                 guard let self, self.generation == token, !Task.isCancelled else { return }
                 self.output = result.text
                 self.corrections = result.corrections
@@ -230,6 +234,8 @@ final class DemoModel {
                 self.work = nil
             } catch {
                 guard let self, self.generation == token, !Task.isCancelled else { return }
+                // A partial translation must never become an actionable result.
+                self.output = ""
                 self.isProcessing = false
                 self.work = nil
                 self.errorMessage = error is CancellationError ? nil : error.localizedDescription

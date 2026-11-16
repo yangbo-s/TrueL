@@ -1,8 +1,19 @@
 import Foundation
 
+typealias TranslationTextUpdate = @MainActor @Sendable (String) throws -> Void
+
 protocol AIClientProtocol: Sendable {
     func listModels(provider: AIProvider, apiKey: String) async throws -> [AIModelInfo]
     func generate(configuration: AIConfiguration, system: String, user: String) async throws -> String
+    func generateTranslation(configuration: AIConfiguration, system: String, user: String,
+                             onUpdate: @escaping TranslationTextUpdate) async throws -> String
+}
+
+extension AIClientProtocol {
+    func generateTranslation(configuration: AIConfiguration, system: String, user: String,
+                             onUpdate: @escaping TranslationTextUpdate) async throws -> String {
+        try await generate(configuration: configuration, system: system, user: user)
+    }
 }
 
 enum AIClientError: Error, LocalizedError, Equatable, Sendable {
@@ -36,9 +47,18 @@ enum AIClientError: Error, LocalizedError, Equatable, Sendable {
 
 struct AIClient: AIClientProtocol {
     typealias Transport = @Sendable (URLRequest) async throws -> (Data, HTTPURLResponse)
+    typealias StreamingTransport = @Sendable (URLRequest, @escaping @Sendable (AIStreamEvent) async throws -> Void) async throws -> Void
     private let transport: Transport
+    private let streamingTransport: StreamingTransport
 
-    init(transport: @escaping Transport = AIClient.send) { self.transport = transport }
+    init(transport: @escaping Transport = AIClient.send) {
+        self.init(transport: transport, streamingTransport: AIClient.sendStream)
+    }
+
+    init(transport: @escaping Transport, streamingTransport: @escaping StreamingTransport) {
+        self.transport = transport
+        self.streamingTransport = streamingTransport
+    }
 
     func listModels(provider: AIProvider, apiKey: String) async throws -> [AIModelInfo] {
         try validateKey(apiKey)
@@ -102,6 +122,33 @@ struct AIClient: AIClientProtocol {
         return try output(from: await object(for: request), provider: configuration.provider)
     }
 
+    func generateTranslation(configuration: AIConfiguration, system: String, user: String,
+                             onUpdate: @escaping TranslationTextUpdate) async throws -> String {
+        guard configuration.provider == .openAI else {
+            return try await generate(configuration: configuration, system: system, user: user)
+        }
+        try validateKey(configuration.apiKey)
+        guard AIProvider.isSafeModelID(configuration.modelID) else { throw AIClientError.invalidModel }
+        let request = try generationRequest(configuration: configuration, system: system, user: user, streamingTranslation: true)
+        let stream = OpenAITranslationStream(onUpdate: onUpdate)
+        do {
+            try Task.checkCancellation()
+            try await streamingTransport(request) { event in try await stream.receive(event) }
+            try Task.checkCancellation()
+            return try await stream.finish()
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch let error as AIClientError {
+            throw error
+        } catch let error as URLError where error.code == .cancelled {
+            throw CancellationError()
+        } catch let error as URLError where error.code == .timedOut {
+            throw AIClientError.timedOut
+        } catch {
+            throw AIClientError.network
+        }
+    }
+
     private func request(url: URL, provider: AIProvider, apiKey: String) -> URLRequest {
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
         request.httpMethod = "GET"
@@ -115,7 +162,8 @@ struct AIClient: AIClientProtocol {
         return request
     }
 
-    private func generationRequest(configuration: AIConfiguration, system: String, user: String, validating: Bool = false) throws -> URLRequest {
+    private func generationRequest(configuration: AIConfiguration, system: String, user: String,
+                                   validating: Bool = false, streamingTranslation: Bool = false) throws -> URLRequest {
         let provider = configuration.provider
         var request = request(url: try provider.generationURL(modelID: configuration.modelID), provider: provider, apiKey: configuration.apiKey)
         request.httpMethod = "POST"
@@ -132,12 +180,18 @@ struct AIClient: AIClientProtocol {
                     "generationConfig": ["maxOutputTokens": 8192]]
         default:
             var chat: [String: Any] = ["model": configuration.modelID,
-                "messages": [["role": "system", "content": system], ["role": "user", "content": user]], "stream": false]
+                "messages": [["role": "system", "content": system], ["role": "user", "content": user]], "stream": streamingTranslation]
             let tokenField = (provider == .openAI || provider == .kimi) ? "max_completion_tokens" : "max_tokens"
             chat[tokenField] = validating ? 16 : 8192
             if validating { chat["thinking"] = ["type": "disabled"] }
+            // Only opt out for the documented model and translation task. Other
+            // models can reject `none`; rewriting retains its existing policy.
+            if streamingTranslation, provider == .openAI, configuration.modelID == "gpt-6-luna" {
+                chat["reasoning_effort"] = "none"
+            }
             body = chat
         }
+        if streamingTranslation { request.setValue("text/event-stream", forHTTPHeaderField: "Accept") }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         return request
     }
@@ -158,6 +212,14 @@ struct AIClient: AIClientProtocol {
             throw AIClientError.network
         }
         try Task.checkCancellation()
+        try Self.validateStatus(response)
+        guard data.count <= 10_000_000,
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              object["error"] == nil else { throw AIClientError.invalidResponse }
+        return object
+    }
+
+    static func validateStatus(_ response: HTTPURLResponse) throws {
         switch response.statusCode {
         case 200..<300: break
         case 401: throw AIClientError.unauthorized
@@ -165,10 +227,6 @@ struct AIClient: AIClientProtocol {
         case 429: throw AIClientError.rateLimited
         default: throw AIClientError.http(response.statusCode)
         }
-        guard data.count <= 10_000_000,
-              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              object["error"] == nil else { throw AIClientError.invalidResponse }
-        return object
     }
 
     private func model(from row: [String: Any], provider: AIProvider) -> AIModelInfo? {
@@ -253,6 +311,22 @@ struct AIClient: AIClientProtocol {
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw AIClientError.invalidResponse }
         return (data, http)
+    }
+
+    private static func sendStream(_ request: URLRequest,
+                                   receive: @escaping @Sendable (AIStreamEvent) async throws -> Void) async throws {
+        let (bytes, response) = try await session.bytes(for: request)
+        // End the connection on cancellation, parse errors, and early rejection.
+        defer { bytes.task.cancel() }
+        guard let http = response as? HTTPURLResponse else { throw AIClientError.invalidResponse }
+        try await receive(.response(http))
+        for try await line in bytes.lines {
+            try Task.checkCancellation()
+            try await receive(.line(line))
+            // The protocol ends at DONE; do not wait for the server to close a
+            // connection after a complete answer. receive validates the marker.
+            if line.hasPrefix("data:"), line.dropFirst(5).trimmingCharacters(in: .whitespaces) == "[DONE]" { break }
+        }
     }
 }
 

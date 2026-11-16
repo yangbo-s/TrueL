@@ -26,18 +26,24 @@ if '--workflows' in sys.argv[2:]:
                 for state in ('loading', 'result', 'style', 'readonly')}
     surfaces |= {f'workspace-{mode}-{state}' for mode in ('grammar', 'translation') for state in ('result', 'style')}
     surfaces |= {'quick-empty', 'quick-error'}
+if '--translation-streaming' in sys.argv[2:]:
+    surfaces = {f'{presentation}-translation-{state}' for presentation in ('quick', 'workspace')
+                for state in ('streaming', 'result')}
 expected = {f'{surface}-{appearance}' for surface in surfaces for appearance in ('light', 'dark')}
 assert len(records) == len(expected), 'Expected both appearances of every result and settings surface'
 assert {record['name'] for record in records} == expected, 'Missing or duplicate capture states'
 panel_ids = {record['windowNumber'] for record in records if not record['name'].startswith('settings-')}
 assert len(panel_ids) == (0 if any(flag in sys.argv[2:] for flag in ('--about', '--icons')) else 1), 'Translation and grammar must share one actual window'
 for record in records:
-    if '--workflows' in sys.argv[2:]:
+    if '--workflows' in sys.argv[2:] or '--translation-streaming' in sys.argv[2:]:
         quick = record['name'].startswith('quick-')
         assert record['presentation'] == ('quick' if quick else 'workspace')
         assert record['scrollCount'] == ('1' if quick else '2'), f'{record["name"]}: unexpected scroll/editor count'
         if '-loading-' in record['name']:
             assert record['isProcessing'] == 'true' and record['returnAction'] == 'none', 'Loading fixture was cancelled'
+        if '-streaming-' in record['name']:
+            assert record['isProcessing'] == 'true' and record['hasResult'] == 'false', 'Partial output became actionable'
+            assert int(record['outputCharacters']) > 0 and record['returnAction'] == 'none', 'Streaming text was not visible'
         if record['name'].startswith('quick-error-'):
             assert record['canSubmit'] == 'true' and record['hasResult'] == 'false', 'Error fixture must retain source for retry'
         if quick and any(f'-{state}-' in record['name'] for state in ('result', 'style', 'readonly')):

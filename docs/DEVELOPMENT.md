@@ -56,6 +56,8 @@ python3 tools/check-layout.py artifacts/screenshots
 
 快速工作流的结果、预设风格、只读、错误及左右对照：`APP_SNAPSHOT_SCOPE=workflows ./tools/snap.sh`，随后运行 `python3 tools/check-layout.py artifacts/screenshots --workflows`。绿色主动作与 Return 意图记录在截图元数据中；原生 Return、样式切换和无编辑框行为由 `QuickWorkflowTests` 验证，`LanguageWorkspaceTests` 验证语言方向和快速会话退出。
 
+翻译增量显示：`APP_SNAPSHOT_SCOPE=translation-streaming ./tools/snap.sh`，再运行 `python3 tools/check-layout.py artifacts/screenshots --translation-streaming`。覆盖快速浮窗和左右对照在浅深外观中的处理中正文与完成状态；使用模拟内容，不调用真实 API。`TranslationLatencyTests` 用受控流验证首段提前显示、请求参数、取消隔离和失败清理。
+
 交互式快捷预览可直接运行 `APP_SNAPSHOT=/tmp/truel-workspace-review APP_SNAPSHOT_SCOPE=workspace-review build/TrueL.app/Contents/MacOS/TrueL`；它保留一张模拟快速结果窗口，供测试菜单、原生关闭、外部失焦及正常重开。结束后退出这个预览进程。
 
 已具备辅助功能和输入监控权限的开发终端可运行 `./tools/check-quick-workflows.sh`。它编译并启动独立测试窗口，真实发送 Ctrl+A+A / Ctrl+C+C，验证结果窗激活后的 AX 替换、超时归还按键、选区变化、来源关闭与只读拒写。仅操作自建窗口，完成后关闭，不读取用户文档和 Key。

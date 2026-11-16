@@ -19,6 +19,13 @@ struct LanguageResult: Sendable {
 @MainActor
 protocol LanguageEngine {
     func perform(_ request: LanguageRequest) async throws -> LanguageResult
+    func perform(_ request: LanguageRequest, onUpdate: @escaping TranslationTextUpdate) async throws -> LanguageResult
+}
+
+extension LanguageEngine {
+    func perform(_ request: LanguageRequest, onUpdate: @escaping TranslationTextUpdate) async throws -> LanguageResult {
+        try await perform(request)
+    }
 }
 
 enum LanguageResponseError: LocalizedError {
@@ -43,6 +50,10 @@ final class ProviderLanguageEngine: LanguageEngine {
     }
 
     func perform(_ request: LanguageRequest) async throws -> LanguageResult {
+        try await perform(request, onUpdate: { _ in })
+    }
+
+    func perform(_ request: LanguageRequest, onUpdate: @escaping TranslationTextUpdate) async throws -> LanguageResult {
         let configuration = try service.configuration(for: request.mode)
         let configurationRevision = service.configurationRevision(for: request.mode)
         let system: String
@@ -66,8 +77,15 @@ final class ProviderLanguageEngine: LanguageEngine {
         let data = try JSONEncoder().encode(Payload(source: request.source))
         let response: String
         do {
-            response = try await client.generate(configuration: configuration, system: system,
-                                                 user: String(decoding: data, as: UTF8.self))
+            let user = String(decoding: data, as: UTF8.self)
+            if request.mode == .translation {
+                response = try await client.generateTranslation(configuration: configuration, system: system, user: user) { text in
+                    try self.checkConfiguration(configurationRevision, mode: request.mode)
+                    try onUpdate(text)
+                }
+            } else {
+                response = try await client.generate(configuration: configuration, system: system, user: user)
+            }
         } catch {
             try checkConfiguration(configurationRevision, mode: request.mode)
             throw error
