@@ -22,7 +22,7 @@ GOAL-067：让主浮窗的原文、译文和改写结果使用一致的正文字
 | TC-068 / AC-068 | 通过。翻译 / 改写 × 464 / 760 pt 窗口，overlay 与 legacy 两种滚动条样式下，滚动容器左右边缘及滚动条右边线误差均 ≤ 0.5 pt；原文与译文文字起点一致，末字符可完整滚入视口。32 张定向截图覆盖浅深色、宽窄、顶部 / 中部 / 底部。 |
 | TC-069 / AC-069：应用回归 | 通过。129 项 Swift 测试（新增布局测试含 4 组参数）、4 项凭据打包检查、3 项发布检查、网格与差异检查均通过。完整状态矩阵 62 张截图和定向 32 张截图均已实际审阅；没有窗口重叠、标题栏裁切或滚动条遮字。 |
 | TC-069 / AC-069：安装与凭据 | 通过。DMG 挂载后签名验证通过，183 个 bundle 条目与构建产物一致；安装包及 feed 公钥验签通过。再次执行两次真实隔离 Sparkle 安装及重启，三个主程序版本均可无交互读取测试凭据。固定组件 CDHash 为 `47fd00ec57231d9685aede03ea335e1eecc405d8`，未重签。 |
-| TC-069 / AC-069：更新检查 | 本地通过。实际 Sparkle 从 build 10 发现 11，build 11 显示最新，篡改 feed 被拒绝。公开发布后的检查在下方记录。 |
+| TC-069 / AC-069：更新检查 | 本地与公开源均通过。实际 Sparkle 从 build 10 发现 11，build 11 显示最新，篡改 feed 被拒绝。公开发布记录见下方。 |
 
 截图及日志：`artifacts/alignment-0.3.3/{before,always,automatic,all,review,logs}`。原始截图保留完整窗口；审阅拼图仅为本地检视辅助。凭据更新证据：`artifacts/credential-continuity/truel-credential-continuity-_98ye18v/result.json`。打包与本地更新日志：`artifacts/release-0.3.3/{package.log,local-update-check.log}`。
 
@@ -36,4 +36,19 @@ ec3def04b6a6f197c14e1774629d7aabadcfdd5b28793cea4e3b21e07d27c10f
 
 ## 公开发布
 
-待公开下载、远程提交及正式更新源读回后记录。
+源码提交 `e0dc91a183de92eacb3a66da796c5e6fbaee5a28` 已快进推送至 `main`，`v0.3.3` 指向该提交；更新源提交为 `56e80f50cdfd031523b2a3f6bc05965498645acc`。
+
+[TrueL 0.3.3](https://github.com/yangbo-s/TrueL/releases/tag/v0.3.3) 为 GitHub 最新正式版，包含 [DMG](https://github.com/yangbo-s/TrueL/releases/download/v0.3.3/TrueL-0.3.3-arm64.dmg) 与 `SHA256SUMS`。匿名下载字节与本地产物一致，安装包 Ed25519 验签通过。正式 HTTPS feed 与签名源文件完全相同，实际 Sparkle 读取到 build 11、10、9：旧版发现 11，11 显示已是最新。证据为 `artifacts/release-0.3.3/public-release-check.log`、`public-update-check.log` 和 `public-update-results.json`。
+
+未退出或替换用户日常使用的应用，也未读取真实 API Key。界面截图使用模拟数据；测试环境为 macOS 27.2.1、2× 屏幕，最低支持系统 macOS 26 未另行上机验证。
+
+## 证据评分：98 / 100
+
+| 维度 | 分数 | 依据 |
+| --- | --- | --- |
+| 需求与验收覆盖 | 25 / 25 | 三个需求均对应实际字体、坐标、截图或发布检查 |
+| 功能正确性与边界 | 25 / 25 | 空内容、长文本、缩放、两种滚动条及末行可达性通过；原有提交与结果操作回归通过 |
+| 测试充分性 | 18 / 20 | 129 项 Swift 测试、7 项打包检查、94 张截图和两次隔离更新；扣 2 分为未实测 macOS 26 与 1× 屏幕 |
+| 架构与接口 | 10 / 10 | 共用正文尺度与边距，保留原生编辑和滚动，无新增依赖或接口变化 |
+| 代码、安全与维护 | 10 / 10 | 网格和差异检查通过，固定凭据组件未改动，测试不接触真实 Key |
+| 文档与交付 | 10 / 10 | 设计规范、开发说明、更新记录与 README 截图同步，源码、安装包及更新源已公开验证 |
