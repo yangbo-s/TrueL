@@ -6,6 +6,19 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>TrueL</title>
         <item>
+            <title>0.4.1</title>
+            <pubDate>Sun, 15 Nov 2026 21:05:24 -0500</pubDate>
+            <sparkle:version>13</sparkle:version>
+            <sparkle:shortVersionString>0.4.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[- 翻译与改写移至红绿灯右侧，原文岛标题改为「原有内容」。
+- 提交、替换和调整统一常显回车图标，绿色仅标记当前回车动作。
+- 快速模式可从顶栏切换任务，直接处理同一原文并保留仍有效的选区。
+]]></description>
+            <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.4.1/TrueL-0.4.1-arm64.dmg" length="2863436" type="application/octet-stream" sparkle:edSignature="/p6jOgKKsCOBttQJQAmG+ca2fhAO2uiiz8NF/jV56tD710ylKuhKZsxjOxOmcwYFYHVim2T/Bghi6nyjbnJDBQ=="/>
+        </item>
+        <item>
             <title>0.4.0</title>
             <pubDate>Sun, 15 Nov 2026 20:44:42 -0500</pubDate>
             <sparkle:version>12</sparkle:version>
@@ -32,24 +45,9 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 ]]></description>
             <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.3.3/TrueL-0.3.3-arm64.dmg" length="2850368" type="application/octet-stream" sparkle:edSignature="S9Plx96P7THH+T8bndTwYfZbCsg9puJn2+izgPFzfQiqLtWKWZCHcw7i72BXj2FVcq/fh4bal4+goNS/bUkVBA=="/>
         </item>
-        <item>
-            <title>0.3.2</title>
-            <pubDate>Sun, 15 Nov 2026 19:32:47 -0500</pubDate>
-            <sparkle:version>10</sparkle:version>
-            <sparkle:shortVersionString>0.3.2</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[- 凭据改由固定签名组件管理，避免普通主程序更新触发重复钥匙串授权。
-- 启动时异步读取凭据；需要首次迁移或解锁时，在 AI 服务页点击「读取已存 Key」。
-- 保留旧 Key 供回退，迁移失败或取消不会覆盖已有凭据。
-
-从旧版升级后，若 AI 服务页显示「读取已存 Key」，点击它完成首次迁移；macOS 可能需要你确认一次授权。
-]]></description>
-            <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.3.2/TrueL-0.3.2-arm64.dmg" length="2843343" type="application/octet-stream" sparkle:edSignature="OzE1zcfbqVlzNUDkdFhzrrQoWC2SQklSkTGro5j/FZ+7nYELgX71KXSCV1jngX6Y5IyLOJal35JBu3LcTEjADQ=="/>
-        </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: hYODUAOwcxGnrzwRfMrb5ZtfgGtmD+sPZzHca8+hkRQkKBRxyCnpr4i7K5d5UDFVaBi12SWy84A7cr9MFeCJDQ==
-length: 3814
+edSignature: nz3uMqfnRtVPid7FP9HgJuiswv7KTUcwHj0SsvNS1tmaeRb8mObxK7jGJ1P8ClBNSRsKurRPZpsB8nPoAgwWAg==
+length: 3653
 -->
