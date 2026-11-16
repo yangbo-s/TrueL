@@ -79,16 +79,13 @@ private final class TranslationTextView: NSTextView {
         let parsed = (try? AttributedString(markdown: text, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
             ?? AttributedString(text)
         let result = NSMutableAttributedString(string: "")
-        let regularFont = NSFont.systemFont(ofSize: 16)
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.lineSpacing = max(0, 26 - NSLayoutManager().defaultLineHeight(for: regularFont))
-        paragraph.lineBreakMode = .byWordWrapping
+        let paragraph = BodyTextStyle.paragraph
 
         for run in parsed.runs {
             let intent = run.inlinePresentationIntent ?? []
             var font = intent.contains(.code)
-                ? NSFont.monospacedSystemFont(ofSize: 15, weight: .regular)
-                : NSFont.systemFont(ofSize: 16, weight: intent.contains(.stronglyEmphasized) ? .semibold : .regular)
+                ? NSFont.monospacedSystemFont(ofSize: TypeScale.body, weight: .regular)
+                : NSFont.systemFont(ofSize: TypeScale.body, weight: intent.contains(.stronglyEmphasized) ? .semibold : .regular)
             if intent.contains(.emphasized) { font = NSFontManager.shared.convert(font, toHaveTrait: .italicFontMask) }
             var attributes: [NSAttributedString.Key: Any] = [
                 .font: font,

@@ -17,6 +17,10 @@ extension AppDelegate {
         service.draftKey = "snapshot-only-placeholder"
         await service.saveKey()
         selectPreviewModels()
+        if ProcessInfo.processInfo.environment["APP_SNAPSHOT_SCOPE"] == "alignment" {
+            await takeAlignmentSnapshots(directory: directory)
+            return
+        }
         preferences.alwaysOnTop = false
         let folder = URL(fileURLWithPath: directory)
         do { try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true) }
@@ -197,6 +201,60 @@ extension AppDelegate {
         } else {
             NSApp.terminate(nil)
         }
+    }
+
+    private func takeAlignmentSnapshots(directory: String) async {
+        let folder = URL(fileURLWithPath: directory)
+        do { try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true) }
+        catch { NSApp.terminate(nil); return }
+        var results: [[String: String]] = []
+        let source = "More performance work.\n• 42% less memory at startup\n• 40% less memory per chat\n• CPU usage: 20% → 8%\n每个聊天的内存占用减少 40%，阅读和输入保持相同字号。"
+        for scheme in ["light", "dark"] {
+            preferences.appearance = scheme
+            NSApp.appearance = NSAppearance(named: scheme == "dark" ? .darkAqua : .aqua)
+            for mode in WorkMode.allCases {
+                model.mode = mode
+                model.input = Array(repeating: mode == .translation ? source : "Haha, enjoy~\n\nYou not the last one.", count: 8).joined(separator: "\n\n")
+                showPanel()
+                model.showPreviewResult()
+                for width in [PopupLayout.compactWidth, PopupLayout.wideWidth] {
+                    userPanelHeight = 520
+                    panel.setContentSize(NSSize(width: width, height: 520))
+                    await pause()
+                    let positions: [CGFloat] = width == PopupLayout.compactWidth ? [0, 0.5, 1] : [0]
+                    for fraction in positions {
+                        let scrolls = panel.contentView.map { scrollViews(in: $0) } ?? []
+                        for scroll in scrolls {
+                            guard let document = scroll.documentView else { continue }
+                            // NSTextView lays out lazily. Resolve the full document before
+                            // calculating a programmatic scroll fraction for the screenshot.
+                            if let text = document as? NSTextView, let container = text.textContainer {
+                                text.layoutManager?.ensureLayout(for: container)
+                            }
+                            let travel = max(0, document.bounds.height - scroll.contentView.bounds.height)
+                            let y = travel * (document.isFlipped ? fraction : 1 - fraction)
+                            scroll.contentView.scroll(to: NSPoint(x: 0, y: y))
+                            scroll.reflectScrolledClipView(scroll.contentView)
+                            scroll.flashScrollers()
+                        }
+                        await pause(milliseconds: 80)
+                        let size = width == PopupLayout.compactWidth ? "compact" : "wide"
+                        let position = fraction == 0 ? "top" : fraction == 1 ? "bottom" : "middle"
+                        var record = capture(panel, name: "alignment-\(mode.rawValue)-\(size)-\(position)-\(scheme)", folder: folder)
+                        record["scrollStyles"] = scrolls.map { $0.scrollerStyle == .overlay ? "overlay" : "legacy" }.joined(separator: ",")
+                        results.append(record)
+                    }
+                }
+            }
+        }
+        let data = try? JSONSerialization.data(withJSONObject: results, options: [.prettyPrinted, .sortedKeys])
+        try? data?.write(to: folder.appendingPathComponent("captures.json"))
+        fputs("SNAPSHOT done \(directory)\n", stderr)
+        NSApp.terminate(nil)
+    }
+
+    private func scrollViews(in view: NSView) -> [NSScrollView] {
+        (view as? NSScrollView).map { [$0] } ?? view.subviews.flatMap { scrollViews(in: $0) }
     }
 
     private func takeCredentialSnapshots(directory: String) async {

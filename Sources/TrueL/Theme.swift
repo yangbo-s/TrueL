@@ -19,11 +19,22 @@ enum SurfaceMetrics {
 enum TypeScale {
     static let control: CGFloat = 12
     static let value: CGFloat = 13
-    static let source: CGFloat = 14
-    static let reading: CGFloat = 16
+    static let body: CGFloat = 14
     static let toolSymbol: CGFloat = 13
     static let inlineSymbol: CGFloat = 12
     static let accessory: CGFloat = 8
+}
+
+@MainActor
+enum BodyTextStyle {
+    static let lineHeight: CGFloat = 22
+    static var font: NSFont { .systemFont(ofSize: TypeScale.body) }
+    static var paragraph: NSParagraphStyle {
+        let style = NSMutableParagraphStyle()
+        style.lineSpacing = max(0, lineHeight - NSLayoutManager().defaultLineHeight(for: font))
+        style.lineBreakMode = .byWordWrapping
+        return style
+    }
 }
 
 enum WindowChromeMetrics {
@@ -38,8 +49,7 @@ enum PopupLayout {
     static let compactWidth: CGFloat = 464
     static let wideWidth: CGFloat = 760
     static let baseHeight: CGFloat = 256
-    static let contentInset: CGFloat = SurfaceMetrics.inset * 2
-    static let editorInset: CGFloat = 0
+    static let textInset: CGFloat = SurfaceMetrics.inset
     static let iconButtonSize: CGFloat = SurfaceMetrics.controlHeight
     static let controlHeight: CGFloat = SurfaceMetrics.controlHeight
     static let resultHeaderHeight: CGFloat = 48

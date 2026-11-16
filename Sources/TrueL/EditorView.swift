@@ -15,7 +15,6 @@ struct PanelEditor: NSViewRepresentable {
         scroll.borderType = .noBorder
         scroll.hasVerticalScroller = true
         scroll.autohidesScrollers = true
-        scroll.scrollerStyle = .overlay
         let editor = PanelTextView()
         editor.drawsBackground = false
         editor.isRichText = false
@@ -24,10 +23,11 @@ struct PanelEditor: NSViewRepresentable {
         editor.isAutomaticTextReplacementEnabled = false
         editor.importsGraphics = false
         editor.allowsUndo = true
-        editor.font = .systemFont(ofSize: TypeScale.source)
+        editor.font = BodyTextStyle.font
+        editor.defaultParagraphStyle = BodyTextStyle.paragraph
         editor.textColor = NSColor(Theme.text)
         editor.insertionPointColor = NSColor(Theme.accent)
-        editor.textContainerInset = NSSize(width: PopupLayout.editorInset, height: PopupLayout.editorInset)
+        editor.textContainerInset = NSSize(width: PopupLayout.textInset, height: 0)
         editor.isVerticallyResizable = true
         editor.isHorizontallyResizable = false
         editor.autoresizingMask = [.width]
@@ -36,6 +36,7 @@ struct PanelEditor: NSViewRepresentable {
         editor.textContainer?.lineFragmentPadding = 0
         editor.textContainer?.containerSize = NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude)
         editor.string = text
+        editor.applyBodyStyle()
         editor.delegate = context.coordinator
         editor.onSubmit = onSubmit
         editor.onCancel = onCancel
@@ -52,6 +53,7 @@ struct PanelEditor: NSViewRepresentable {
         if editor.string != text {
             let selection = editor.selectedRange()
             editor.string = text
+            editor.applyBodyStyle()
             editor.setSelectedRange(NSRange(location: min(selection.location, (text as NSString).length), length: 0))
         }
     }
@@ -69,6 +71,13 @@ struct PanelEditor: NSViewRepresentable {
 final class PanelTextView: NSTextView {
     var onSubmit: (() -> Void)?
     var onCancel: (() -> Void)?
+    func applyBodyStyle() {
+        let paragraph = BodyTextStyle.paragraph
+        textStorage?.addAttribute(.paragraphStyle, value: paragraph,
+                                 range: NSRange(location: 0, length: (string as NSString).length))
+        typingAttributes[.paragraphStyle] = paragraph
+    }
+
     override func keyDown(with event: NSEvent) {
         // Let the input method confirm its candidate before interpreting Return.
         if hasMarkedText() {

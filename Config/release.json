@@ -1,6 +1,6 @@
 {
-  "version": "0.3.2",
-  "build": "10",
+  "version": "0.3.3",
+  "build": "11",
   "minimumSystemVersion": "26.0",
   "feedURL": "https://raw.githubusercontent.com/yangbo-s/TrueL/main/updates/appcast.xml",
   "publicEDKey": "IWrYp4ZKApREbsO4YMVMM/Zkzrti14GrNBs4EzSZUVU=",

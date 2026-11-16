@@ -52,6 +52,8 @@ python3 tools/check-layout.py artifacts/screenshots
 
 截图模式 `APP_SNAPSHOT` 使用模拟 API、内存设置和固定权限状态，不访问真实 Key；自动覆盖主浮窗、结果、异常、长内容、调整尺寸及五个设置页的浅深两种外观。输出包括 PNG 与 `captures.json`。须逐张检查对齐、裁切、焦点和材料效果，不能只凭截图数量判断通过。
 
+正文与滚动对齐可定向运行 `APP_SNAPSHOT_SCOPE=alignment ./tools/snap.sh`，再执行 `python3 tools/check-layout.py artifacts/screenshots --alignment`。该矩阵覆盖两种任务、窄宽窗口、浅深外观与长文本的顶部/中部/底部；直接运行应用并传入 `-AppleShowScrollBars WhenScrolling` 可补查自动隐藏滚动条。`PopupAlignmentTests` 在真实窗口中校验正文属性、滚动区域坐标及末字符可见性。
+
 图标母版保存在 `design/logo-refinements/native`，默认原生图标为 `Icon/AppIcon.icon`。`build.sh` 调用 `python3 tools/make-icons.py`，按内容哈希缓存编译产物。`Resources` 中保留可审查的资源，`python3 tools/make-icons.py --check` 验证是否与母版一致。
 
 逐款切换验收可运行 `APP_SNAPSHOT_SCOPE=icons ./tools/snap.sh`，再执行 `python3 tools/check-layout.py artifacts/screenshots --icons`。

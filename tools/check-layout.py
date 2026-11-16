@@ -16,12 +16,20 @@ if '--about' in sys.argv[2:]:
     surfaces = {'settings-about'}
 if '--icons' in sys.argv[2:]:
     surfaces = {f'settings-icon-{style}' for style in ('1A', '1B', '1C', '3A', '3B', '3C', 'default')}
+if '--alignment' in sys.argv[2:]:
+    surfaces = {f'alignment-{mode}-{size}-{position}'
+                for mode in ('grammar', 'translation')
+                for size, positions in [('compact', ('top', 'middle', 'bottom')), ('wide', ('top',))]
+                for position in positions}
 expected = {f'{surface}-{appearance}' for surface in surfaces for appearance in ('light', 'dark')}
 assert len(records) == len(expected), 'Expected both appearances of every result and settings surface'
 assert {record['name'] for record in records} == expected, 'Missing or duplicate capture states'
 panel_ids = {record['windowNumber'] for record in records if not record['name'].startswith('settings-')}
 assert len(panel_ids) == (0 if any(flag in sys.argv[2:] for flag in ('--about', '--icons')) else 1), 'Translation and grammar must share one actual window'
 for record in records:
+    if '--alignment' in sys.argv[2:]:
+        styles = record['scrollStyles'].split(',')
+        assert len(styles) == 2 and styles[0] == styles[1], f'{record["name"]}: inconsistent native scrollers'
     if '--icons' in sys.argv[2:]:
         expected_icon = record['name'].split('-')[2]
         if expected_icon == 'default': expected_icon = '3A'

@@ -152,14 +152,14 @@ struct PopupView: View {
         ZStack(alignment: .topLeading) {
             if model.input.isEmpty {
                 Text("输入或粘贴原文")
-                    .font(.system(size: TypeScale.source))
+                    .font(.system(size: TypeScale.body))
                     .foregroundStyle(Theme.secondary)
+                    .padding(.horizontal, PopupLayout.textInset)
                     .allowsHitTesting(false)
             }
             PanelEditor(text: $model.input, onSubmit: { model.submit() }, onCancel: { model.cancel() })
         }
         .frame(height: editorHeight)
-        .padding(.horizontal, SurfaceMetrics.inset)
     }
 
     private var toolbar: some View {
@@ -240,7 +240,7 @@ struct PopupView: View {
                         if !model.tip.isEmpty { AnalysisTip(text: model.tip) }
                     }
                 }
-                .padding(.horizontal, PopupLayout.contentInset)
+                .padding(.horizontal, PopupLayout.textInset)
                 .padding(.top, hasHeader ? 0 : 12)
                 .padding(.bottom, hasHeader && !model.tip.isEmpty && showingFollowUp ? 0 : 12)
                 .onGeometryChange(for: CGFloat.self) { ceil($0.size.height) } action: { height in
@@ -248,6 +248,7 @@ struct PopupView: View {
                 }
             }
             .scrollIndicators(.automatic)
+            .padding(.horizontal, SurfaceMetrics.inset)
         }
         .frame(height: resultHeight)
     }
@@ -261,13 +262,14 @@ struct PopupView: View {
                     else { TranslationResultText(text: model.output) }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, PopupLayout.contentInset)
+                .padding(.horizontal, PopupLayout.textInset)
                 .padding(.bottom, 12)
                 .onGeometryChange(for: CGFloat.self) { ceil($0.size.height) } action: { height in
                     updateResultHeight(height + PopupLayout.resultHeaderHeight)
                 }
             }
             .scrollIndicators(.automatic)
+            .padding(.horizontal, SurfaceMetrics.inset)
         }
         .frame(height: resultHeight)
     }
@@ -324,7 +326,7 @@ struct PopupView: View {
         HStack(spacing: 8) {
             ProgressView().controlSize(.mini)
             Text(model.output.isEmpty ? (model.mode == .translation ? "正在翻译…" : "正在检查…") : model.output)
-                .font(.system(size: 13))
+                .font(.system(size: TypeScale.body))
                 .foregroundStyle(Theme.resultSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -474,7 +476,7 @@ private struct CorrectedText: View {
                                                hover: hover)
                                     .layoutValue(key: LeadingWhitespaceWidth.self, value: token.leadingWidth)
                             } else {
-                                Text(token.text).font(.system(size: 13)).foregroundStyle(Theme.resultText).padding(.vertical, 2)
+                                Text(token.text).font(.system(size: TypeScale.body)).foregroundStyle(Theme.resultText).padding(.vertical, 2)
                                     .layoutValue(key: LeadingWhitespaceWidth.self, value: token.leadingWidth)
                             }
                         }
@@ -494,7 +496,7 @@ private struct ResultToken {
     var roundsLeadingWhitespace = false
 
     var leadingWidth: CGFloat {
-        let width = (leadingWhitespace as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: 13)]).width
+        let width = (leadingWhitespace as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: TypeScale.body)]).width
         guard roundsLeadingWhitespace else { return width }
         let scale = NSScreen.main?.backingScaleFactor ?? 2
         return ceil(width * scale) / scale
@@ -514,7 +516,7 @@ private struct CorrectionChip: View {
         // Click/keyboard activation is an accessible supplement; it never toggles a hovered explanation shut.
         Button { hover.present(occurrenceID) } label: {
             Text(correction.replacement)
-                .font(.system(size: 13))
+                .font(.system(size: TypeScale.body))
                 .foregroundStyle(Theme.replacementText)
                 .padding(.vertical, 2)
                 .background {
