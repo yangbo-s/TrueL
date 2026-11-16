@@ -6,6 +6,17 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>TrueL</title>
         <item>
+            <title>0.5.2</title>
+            <pubDate>Sun, 15 Nov 2026 22:09:13 -0500</pubDate>
+            <sparkle:version>16</sparkle:version>
+            <sparkle:shortVersionString>0.5.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[- 顶栏标志缩至与 TrueL 字标相称的视觉字高，标志与文字间距收紧为 4 pt，继续保持组合居中。
+]]></description>
+            <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.5.2/TrueL-0.5.2-arm64.dmg" length="2870074" type="application/octet-stream" sparkle:edSignature="zZ8tLANpnFNajc1SeN0QfKrIvCSo8LDqKYhAxxO9BY+jTeirej4DunWMDn4/SRlSgsZnRVd58dAUW2Fih3MnBw=="/>
+        </item>
+        <item>
             <title>0.5.0</title>
             <pubDate>Sun, 15 Nov 2026 21:46:26 -0500</pubDate>
             <sparkle:version>14</sparkle:version>
@@ -33,24 +44,9 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 ]]></description>
             <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.4.1/TrueL-0.4.1-arm64.dmg" length="2863436" type="application/octet-stream" sparkle:edSignature="/p6jOgKKsCOBttQJQAmG+ca2fhAO2uiiz8NF/jV56tD710ylKuhKZsxjOxOmcwYFYHVim2T/Bghi6nyjbnJDBQ=="/>
         </item>
-        <item>
-            <title>0.4.0</title>
-            <pubDate>Sun, 15 Nov 2026 20:44:42 -0500</pubDate>
-            <sparkle:version>12</sparkle:version>
-            <sparkle:shortVersionString>0.4.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[- 快速翻译与快速改写只显示结果，默认 Ctrl+C+C 和 Ctrl+A+A。
-- 快速结果按 Return 替换可编辑原选区；调整框中 Return 提交要求，绿色按钮跟随当前动作。
-- 普通翻译与改写改为左右对照，共用字号、行高、滚动边距及底栏尺寸。
-- 连续快捷键保留选区，未完成时归还原按键；保留自定义与已关闭的快捷键。
-- 快速和对照模式复用一个窗口，并分别记住手动调整的尺寸。
-]]></description>
-            <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.4.0/TrueL-0.4.0-arm64.dmg" length="2862348" type="application/octet-stream" sparkle:edSignature="wtqyoSwW6PnLsNtrQtOWPMm6HD5H0rihC9T+WHsKo/22siyajoCUYGLIqL1N/YAChIkzH8u2bLiGsEpOTXTYCA=="/>
-        </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: 8xUNQpuG+fWyU3vnGUFuztYPl6xCV6xXbv1FcD0f/S7Qew9cnrphGTiwEPEJAdBwI9s/boarKSfoGWJxgACsBw==
-length: 3995
+edSignature: CmSAeP2tyHBb2lCaB4jSvsh2n8/JMB8VWP9IhjNe8oqMB/Y8bHqh2VbvmMylxOdvohZgMbU8TJCLfOpxoLhHCw==
+length: 3633
 -->
