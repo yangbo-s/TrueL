@@ -23,8 +23,8 @@ if '--alignment' in sys.argv[2:]:
                 for position in positions}
 if '--workflows' in sys.argv[2:]:
     surfaces = {f'quick-{mode}-{state}' for mode in ('grammar', 'translation')
-                for state in ('loading', 'result', 'refine', 'readonly')}
-    surfaces |= {f'workspace-{mode}-{state}' for mode in ('grammar', 'translation') for state in ('result', 'refine')}
+                for state in ('loading', 'result', 'style', 'readonly')}
+    surfaces |= {f'workspace-{mode}-{state}' for mode in ('grammar', 'translation') for state in ('result', 'style')}
     surfaces |= {'quick-empty', 'quick-error'}
 expected = {f'{surface}-{appearance}' for surface in surfaces for appearance in ('light', 'dark')}
 assert len(records) == len(expected), 'Expected both appearances of every result and settings surface'
@@ -40,9 +40,7 @@ for record in records:
             assert record['isProcessing'] == 'true' and record['returnAction'] == 'none', 'Loading fixture was cancelled'
         if record['name'].startswith('quick-error-'):
             assert record['canSubmit'] == 'true' and record['hasResult'] == 'false', 'Error fixture must retain source for retry'
-        if '-refine-' in record['name']:
-            assert record['returnAction'] == 'refine' and record['focus'] == 'followUp'
-        elif quick and any(f'-{state}-' in record['name'] for state in ('result', 'readonly')):
+        if quick and any(f'-{state}-' in record['name'] for state in ('result', 'style', 'readonly')):
             assert record['returnAction'] == 'replace' and record['focus'] == 'result'
     if '--alignment' in sys.argv[2:]:
         styles = record['scrollStyles'].split(',')

@@ -48,13 +48,35 @@ final class DemoModel {
     private(set) var grammarOutcome: GrammarOutcome = .unverified
     private(set) var grammarTranslation = ""
     private(set) var tip = ""
-    var followUp = ""
     private(set) var isProcessing = false
     private(set) var copied = false
     private(set) var accepted = false
     private(set) var errorMessage: String?
     var targetLanguage = "简体中文" { didSet { if targetLanguage != oldValue { invalidateAndClear() } } }
-    var writingStyle = "standard" { didSet { if writingStyle != oldValue { invalidateAndClear() } } }
+    var sourceLanguage = TextLanguage.automatic { didSet { if sourceLanguage != oldValue { invalidateAndClear() } } }
+    private(set) var detectedLanguage: TextLanguage? = .english
+    var translationStyle = "standard" { didSet { if translationStyle != oldValue && mode == .translation { invalidateAndClear() } } }
+    var writingStyle = "standard" { didSet { if writingStyle != oldValue && mode == .grammar { invalidateAndClear() } } }
+
+    var resolvedSourceLanguage: TextLanguage? { TextLanguage(rawValue: sourceLanguage) ?? detectedLanguage }
+    var sourceLanguageTitle: String {
+        sourceLanguage == TextLanguage.automatic ? detectedLanguage.map { "检测 · \($0.rawValue)" } ?? TextLanguage.automatic : sourceLanguage
+    }
+    var resolvedTargetLanguage: TextLanguage {
+        let target = TextLanguage(rawValue: targetLanguage) ?? .simplifiedChinese
+        return target == resolvedSourceLanguage ? target.alternate : target
+    }
+    var currentStyle: TextStyle { TextStyle.resolve(mode == .translation ? translationStyle : writingStyle, for: mode) }
+    var canSwapLanguages: Bool { mode == .translation && hasResult && resolvedSourceLanguage != nil }
+
+    func swapLanguages() {
+        guard canSwapLanguages, let source = resolvedSourceLanguage else { return }
+        let result = output
+        let target = resolvedTargetLanguage
+        input = result
+        sourceLanguage = target.rawValue
+        targetLanguage = source.rawValue
+    }
 
     var hasResult: Bool { !output.isEmpty && !isProcessing }
     var canSubmit: Bool { !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isProcessing }
@@ -83,6 +105,7 @@ final class DemoModel {
     }
 
     func inputChanged() {
+        detectedLanguage = TextLanguage.detect(input)
         inputRevision = UUID()
         invalidateAndClear()
     }
@@ -106,9 +129,11 @@ final class DemoModel {
         }
         guard !isProcessing else { return }
         if engine != nil {
-            beginRequest(LanguageRequest(source: source, mode: mode, targetLanguage: targetLanguage, writingStyle: writingStyle))
+            beginRequest(LanguageRequest(source: source, mode: mode,
+                targetLanguage: mode == .translation ? resolvedTargetLanguage.rawValue : targetLanguage,
+                writingStyle: currentStyle.id, sourceLanguage: resolvedSourceLanguage?.rawValue))
         } else {
-            begin(Self.fixture(source: source, mode: mode))
+            begin(Self.fixture(source: source, mode: mode, targetLanguage: resolvedTargetLanguage))
         }
     }
 
@@ -118,10 +143,10 @@ final class DemoModel {
     }
 
     func reset() {
+        sourceLanguage = TextLanguage.automatic
         inputRevision = UUID()
         invalidateAndClear()
         input = ""
-        followUp = ""
     }
 
     func applyResult() {
@@ -144,42 +169,10 @@ final class DemoModel {
         }
     }
 
-    func refine() {
-        let request = followUp.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard hasResult, !request.isEmpty else { return }
-        if engine != nil {
-            let source = output
-            followUp = ""
-            beginRequest(LanguageRequest(source: source, mode: mode, targetLanguage: targetLanguage,
-                                         writingStyle: writingStyle, instruction: request))
-            return
-        }
-        let text: String
-        let translation: String
-        if input.contains("last one") {
-            text = mode == .grammar ? "Enjoy! You're not the only one." : "玩得开心，你不是最后一个。"
-            translation = "玩得开心！你不是唯一一个。"
-        } else if input.contains("I has a idea") {
-            text = mode == .grammar ? "I have an idea to help people write better." : "我有个帮助大家改善写作的点子。"
-            translation = "我有一个帮助大家写得更好的想法。"
-        } else {
-            text = "模拟改写：\n" + output
-            translation = ""
-        }
-        followUp = ""
-        begin(DemoResult(
-            text: text,
-            corrections: [],
-            grammarTranslation: mode == .grammar ? translation : "",
-            tip: mode == .grammar ? "已演示「\(request)」的调整效果。当前为本地模拟结果。" : "",
-            outcome: mode == .grammar ? .edited : .unverified
-        ))
-    }
-
     func loadSample(_ index: Int = 0) {
+        sourceLanguage = TextLanguage.automatic
         inputRevision = UUID()
         invalidateAndClear()
-        followUp = ""
         switch index {
         case 1: input = "I has a idea. It help people write better."
         case 2: input = "把复杂的想法，写得清楚一点。"
@@ -189,7 +182,7 @@ final class DemoModel {
 
     func showPreviewResult() {
         invalidateAndClear()
-        let result = Self.fixture(source: input.trimmingCharacters(in: .whitespacesAndNewlines), mode: mode)
+        let result = Self.fixture(source: input.trimmingCharacters(in: .whitespacesAndNewlines), mode: mode, targetLanguage: resolvedTargetLanguage)
         output = result.text
         corrections = result.corrections
         grammarOutcome = result.outcome
@@ -288,10 +281,15 @@ final class DemoModel {
         }
     }
 
-    private static func fixture(source: String, mode: WorkMode) -> DemoResult {
+    private static func fixture(source: String, mode: WorkMode, targetLanguage: TextLanguage) -> DemoResult {
         if mode == .translation {
             let text: String
-            if source.contains("last one") {
+            if targetLanguage == .english, source.contains("阅读是一种缓慢的理解过程") {
+                let paragraph = "Reading is a gradual process of understanding. A good translation preserves meaning and connects sentences naturally. The source and translation need a clear hierarchy so you can keep reading."
+                text = Array(repeating: paragraph, count: source.components(separatedBy: "阅读是一种缓慢的理解过程").count - 1).joined(separator: "\n\n")
+            } else if targetLanguage == .english, source.contains("你不是最后一个") {
+                text = "Haha, enjoy~\n\nYou are not the last one."
+            } else if source.contains("last one") {
                 text = "哈哈，玩得开心～\n\n你不是最后一个。"
             } else if source.contains("I has a idea") {
                 text = "我有一个想法。它能帮助大家写得更好。"

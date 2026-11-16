@@ -87,14 +87,19 @@ struct SettingsView: View {
                     .frame(width: 144, height: 28)
                     .accessibilityLabel("翻译目标语言")
                 }
-                SettingsRow(title: "写作风格") {
-                    NativeSettingsMenu(selection: $preferences.writingScene, choices: [
-                        SettingsMenuChoice(value: "standard", title: "标准"),
-                        SettingsMenuChoice(value: "professional", title: "专业"),
-                        SettingsMenuChoice(value: "social", title: "社交"),
-                    ], width: 144)
+                SettingsRow(title: "翻译风格") {
+                    NativeSettingsMenu(selection: $preferences.translationStyle, choices: TextStyle.translation.map {
+                        SettingsMenuChoice(value: $0.id, title: $0.title)
+                    }, width: 144)
                     .frame(width: 144, height: 28)
-                    .accessibilityLabel("写作风格")
+                    .accessibilityLabel("翻译风格")
+                }
+                SettingsRow(title: "改写风格") {
+                    NativeSettingsMenu(selection: $preferences.writingScene, choices: TextStyle.grammar.map {
+                        SettingsMenuChoice(value: $0.id, title: $0.title)
+                    }, width: 144)
+                    .frame(width: 144, height: 28)
+                    .accessibilityLabel("改写风格")
                 }
             }
             SettingsSection(title: "系统权限") {
@@ -109,7 +114,10 @@ struct SettingsView: View {
 
     private func permissionRow(_ title: String, granted: Bool, action: @escaping () -> Void) -> some View {
         SettingsRow(title: title) {
-            Label(granted ? "已授权" : "未授权", systemImage: granted ? "checkmark.circle" : "circle")
+            HStack(spacing: 4) {
+                PopupGlyph(symbol: granted ? "checkmark.circle" : "circle")
+                Text(granted ? "已授权" : "未授权")
+            }
                 .font(.system(size: 12))
                 .foregroundStyle(granted ? Theme.success : Theme.secondary)
             Button("打开设置", action: action)
@@ -322,7 +330,7 @@ private struct ServiceSettings: View {
             .textFieldStyle(.plain).focused($keyFocused)
             .accessibilityLabel("\(service.selectedProvider.displayName) API Key")
             Button { showsKey.toggle() } label: {
-                Image(systemName: showsKey ? "eye.slash" : "eye").font(.system(size: TypeScale.toolSymbol))
+                PopupGlyph(showsKey ? .eyeSlash : .eye)
             }
             .buttonStyle(QuietIconStyle(embedded: true))
             .help(showsKey ? "隐藏 API Key" : "显示 API Key")
@@ -378,7 +386,7 @@ private struct SettingsInfo: View {
     @SettingsState<Bool> private var isPresented = false
     var body: some View {
         Button { isPresented.toggle() } label: {
-            Image(systemName: "info.circle").font(.system(size: 12))
+            PopupGlyph(.info, size: TypeScale.inlineSymbol)
         }
         .buttonStyle(QuietIconStyle(embedded: true))
         .accessibilityLabel(text).help(text)

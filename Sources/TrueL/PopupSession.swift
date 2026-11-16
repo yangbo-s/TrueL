@@ -11,11 +11,10 @@ enum PopupPresentation: String, Sendable {
     var minimumHeight: CGFloat { self == .workspace ? 360 : PopupLayout.baseHeight }
 }
 
-enum PopupFocus { case result, source, followUp }
-enum PopupReturnAction { case submit, replace, refine, none }
+enum PopupFocus { case result, source }
+enum PopupReturnAction { case submit, replace, none }
 
-/// Button emphasis and keyboard dispatch read the same state; an empty focused
-/// follow-up must never fall through to a destructive replacement.
+/// Button emphasis and keyboard dispatch read the same presentation state.
 @MainActor @Observable
 final class PopupSession {
     var presentation: PopupPresentation = .workspace
@@ -23,7 +22,6 @@ final class PopupSession {
 
     func returnAction(model: DemoModel) -> PopupReturnAction {
         if model.isProcessing { return .none }
-        if focus == .followUp { return .refine }
         if presentation == .workspace { return .submit }
         return model.hasResult ? .replace : .submit
     }
@@ -33,7 +31,6 @@ final class PopupSession {
         switch action {
         case .submit: return !model.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .replace: return model.hasResult && selection.canReplaceSelection
-        case .refine: return model.hasResult && !model.followUp.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .none: return false
         }
     }

@@ -26,14 +26,19 @@ private final class ConfigurationMutatingClient: AIClientProtocol {
     var onGenerate: @MainActor () -> Void = {}
     var fail = false
     var lastConfiguration: AIConfiguration?
+    var lastSystem = ""
+    var lastUser = ""
+    var response = "译文"
     func listModels(provider: AIProvider, apiKey: String) async throws -> [AIModelInfo] {
         [AIModelInfo(id: "model-a", displayName: "A"), AIModelInfo(id: "model-b", displayName: "B")]
     }
     func generate(configuration: AIConfiguration, system: String, user: String) async throws -> String {
         lastConfiguration = configuration
+        lastSystem = system
+        lastUser = user
         onGenerate()
         if fail { throw AIClientError.unauthorized }
-        return "译文"
+        return response
     }
 }
 
@@ -123,6 +128,29 @@ struct LanguageEngineTests {
         }
     }
 
+    @Test func presetsReachProviderPromptAndRewriteStaysInSourceLanguage() async throws {
+        let client = ConfigurationMutatingClient()
+        let service = ServiceConfiguration(persist: false, client: client)
+        service.draftKey = "test-key"
+        await service.saveKey()
+        for mode in WorkMode.allCases {
+            service.selectModel(ModelSelection(provider: .gemini, modelID: "model-a"), for: mode)
+        }
+        let engine = ProviderLanguageEngine(service: service, client: client)
+        _ = try await engine.perform(LanguageRequest(source: "A source sentence.", mode: .translation,
+            targetLanguage: "日本語", writingStyle: "literal", sourceLanguage: "English"))
+        #expect(client.lastSystem.contains("Source language: English"))
+        #expect(client.lastSystem.contains(TextStyle.resolve("literal", for: .translation).instruction))
+        let payload = try #require(JSONSerialization.jsonObject(with: Data(client.lastUser.utf8)) as? [String: String])
+        #expect(payload == ["source": "A source sentence."])
+        client.response = #"{"output":"A source sentence.","corrections":[]}"#
+        _ = try await engine.perform(LanguageRequest(source: "A source sentence.", mode: .grammar,
+            writingStyle: "professional", sourceLanguage: "English"))
+        #expect(client.lastSystem.contains("Do not translate the source."))
+        #expect(client.lastSystem.contains(TextStyle.resolve("professional", for: .grammar).instruction))
+        #expect(!client.lastSystem.contains("translation ("))
+    }
+
     @Test func engineCancellationExitsLoadingWithoutResultOrError() async throws {
         let model = DemoModel(engine: CancelledLanguageEngine())
         model.input = "Source"
@@ -178,18 +206,26 @@ struct LanguageEngineTests {
         #expect(!model.isProcessing)
     }
 
-    @Test func refinementUsesCurrentOutputAndSeparateInstruction() async throws {
+    @Test func styleRegenerationUsesOriginalSourceAndTaskSpecificStyle() async throws {
         let engine = DelayedLanguageEngine()
         let model = DemoModel(engine: engine)
-        model.input = "Original"
+        model.input = "Original sentence in English."
         model.submit()
         await waitForCompletion(model)
-        model.followUp = "More concise"
-        model.refine()
+        model.writingStyle = "concise"
+        model.submit()
         await waitForCompletion(model)
-        #expect(engine.requests.last?.source == "Live: Original")
-        #expect(engine.requests.last?.instruction == "More concise")
-        #expect(model.output == "Live: Live: Original")
+        #expect(engine.requests.last?.source == "Original sentence in English.")
+        #expect(engine.requests.last?.writingStyle == "concise")
+        #expect(model.output == "Live: Original sentence in English.")
+        model.mode = .translation
+        model.translationStyle = "literal"
+        model.targetLanguage = "English"
+        model.submit()
+        await waitForCompletion(model)
+        #expect(engine.requests.last?.writingStyle == "literal")
+        #expect(engine.requests.last?.targetLanguage == "简体中文")
+        #expect(engine.requests.last?.sourceLanguage == "English")
     }
 
     @Test func providerFailureDoesNotFallBackToFakeSuccess() async throws {

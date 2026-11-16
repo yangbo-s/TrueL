@@ -19,6 +19,15 @@ extension AppDelegate {
         selectPreviewModels()
         // Let configuration observers settle before starting a fixture request.
         await pause(milliseconds: 150)
+        if ProcessInfo.processInfo.environment["APP_SNAPSHOT_SCOPE"] == "workspace-review" {
+            preferences.appearance = "light"
+            beginInput("Haha, enjoy~\n\nYou not the last one.", mode: .translation,
+                       canReplaceSelection: true, presentation: .quick)
+            model.showPreviewResult()
+            snapshotRunning = false
+            fputs("SNAPSHOT ready workspace-review\n", stderr)
+            return
+        }
         if ProcessInfo.processInfo.environment["APP_SNAPSHOT_SCOPE"] == "alignment" {
             await takeAlignmentSnapshots(directory: directory)
             return
@@ -227,13 +236,12 @@ extension AppDelegate {
                 model.showPreviewResult()
                 await pause()
                 records.append(capture(panel, name: "quick-\(mode.rawValue)-result-\(scheme)", folder: folder))
-                session.focus = .followUp
-                model.followUp = "更简洁一些，保留轻松的语气"
+                changeStyle("concise")
+                model.showPreviewResult()
                 await pause()
-                records.append(capture(panel, name: "quick-\(mode.rawValue)-refine-\(scheme)", folder: folder))
+                records.append(capture(panel, name: "quick-\(mode.rawValue)-style-\(scheme)", folder: folder))
                 panel.makeFirstResponder(nil)
                 session.focus = .result
-                model.followUp = ""
                 selectionContext.clear()
                 await pause()
                 records.append(capture(panel, name: "quick-\(mode.rawValue)-readonly-\(scheme)", folder: folder))
@@ -241,10 +249,10 @@ extension AppDelegate {
                 model.showPreviewResult()
                 await pause()
                 records.append(capture(panel, name: "workspace-\(mode.rawValue)-result-\(scheme)", folder: folder))
-                session.focus = .followUp
-                model.followUp = "使用更自然的表达"
+                changeStyle("professional")
+                model.showPreviewResult()
                 await pause()
-                records.append(capture(panel, name: "workspace-\(mode.rawValue)-refine-\(scheme)", folder: folder))
+                records.append(capture(panel, name: "workspace-\(mode.rawValue)-style-\(scheme)", folder: folder))
             }
             beginInput("", mode: .translation, presentation: .quick)
             await pause()

@@ -4,7 +4,7 @@ import Testing
 
 @MainActor
 struct PopupReturnTests {
-    @Test func focusedEmptyInstructionNeverFallsThroughToReplacement() {
+    @Test func returnTracksPresentationAndRequiresAValidSelection() {
         let model = DemoModel()
         model.showPreviewResult()
         let context = SelectionReplacementContext(model: model)
@@ -13,12 +13,6 @@ struct PopupReturnTests {
         session.presentation = .quick
         #expect(session.returnAction(model: model) == .replace)
         #expect(session.canPerform(.replace, model: model, selection: context))
-        session.focus = .followUp
-        #expect(session.returnAction(model: model) == .refine)
-        #expect(!session.canPerform(.refine, model: model, selection: context))
-        model.followUp = "Make it shorter."
-        #expect(session.canPerform(.refine, model: model, selection: context))
-        session.focus = .result
         context.clear()
         #expect(!session.canPerform(session.returnAction(model: model), model: model, selection: context))
         session.presentation = .workspace
@@ -32,7 +26,6 @@ struct PopupReturnTests {
         model.submit()
         defer { model.cancel() }
         #expect(session.returnAction(model: model) == .none)
-        session.focus = .followUp
         #expect(session.returnAction(model: model) == .none)
     }
 }
@@ -47,14 +40,12 @@ extension UnifiedPopupTests {
         subject.model.showPreviewResult()
         subject.selectionContext.bind(canReplace: source != "readonly")
         if source == "failed" { subject.selectionContext.fail("The selection changed.") }
-        subject.session.focus = .followUp
-        subject.model.followUp = "Make it shorter."
         subject.changeWorkMode(.translation)
         defer { subject.model.cancel() }
         #expect(subject.model.mode == .translation)
         #expect(subject.model.input == "A selected sentence.")
         #expect(subject.model.isProcessing)
-        #expect(subject.model.output.isEmpty && subject.model.followUp.isEmpty)
+        #expect(subject.model.output.isEmpty)
         #expect(subject.session.focus == .result)
         #expect(subject.selectionContext.canReplaceSelection == (source == "editable"))
     }
@@ -92,9 +83,7 @@ extension UnifiedPopupTests {
         #expect(panel.frame.width == PopupLayout.compactWidth)
         #expect(!descendants(try #require(panel.contentView)).contains { $0 is PanelTextView })
         #expect(subject.session.returnAction(model: subject.model) == .replace)
-        subject.session.focus = .followUp
-        subject.model.followUp = "更简洁"
-        subject.performReturnAction()
+        subject.changeStyle("concise")
         #expect(subject.model.isProcessing)
         #expect(subject.session.focus == .result)
         #expect(subject.selectionContext.canReplaceSelection)
@@ -138,7 +127,7 @@ extension UnifiedPopupTests {
         #expect(replacements == 1)
     }
 
-    @Test func nativeFollowUpReturnSubmitsInstructionAndEmptyReturnDoesNotReplace() async throws {
+    @Test func quickStyleChangePreservesCaptureAndHasNoEditableInstructionField() async throws {
         let subject = AppDelegate(preview: true)
         subject.snapshotRunning = true
         subject.beginInput("Haha, enjoy~\n\nYou not the last one.", mode: .grammar,
@@ -148,35 +137,22 @@ extension UnifiedPopupTests {
         defer { subject.model.cancel(); panel.delegate = nil; panel.close(); panel.contentView = nil }
         try await Task.sleep(for: .milliseconds(120))
         let root = try #require(panel.contentView)
-        let field = try #require(descendants(root)
-            .compactMap { $0 as? NSTextField }.first { $0.isEditable })
-        #expect(panel.makeFirstResponder(field))
-        try await Task.sleep(for: .milliseconds(60))
-        #expect(subject.session.focus == .followUp)
-        let editor = try #require(panel.firstResponder as? NSTextView)
-        #expect(editor.isEditable && editor.isFieldEditor)
-        func sendReturn() throws {
-            panel.sendEvent(try #require(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [],
-                timestamp: 0, windowNumber: panel.windowNumber, context: nil, characters: "\r",
-                charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36)))
-        }
-        try sendReturn()
-        try await Task.sleep(for: .milliseconds(60))
-        #expect(!subject.model.isProcessing)
-        #expect(subject.selectionContext.replacementError == nil)
-        #expect(subject.selectionContext.canReplaceSelection)
-        subject.model.followUp = "Use a warmer tone."
-        try await Task.sleep(for: .milliseconds(60))
-        try sendReturn()
-        try await Task.sleep(for: .milliseconds(60))
+        #expect(!descendants(root).compactMap { $0 as? NSTextField }.contains { $0.isEditable })
+        #expect(!descendants(root).compactMap { $0 as? NSTextView }.contains { $0.isEditable })
+        subject.changeStyle("concise")
         #expect(subject.model.isProcessing)
-        #expect(subject.model.followUp.isEmpty)
-        #expect(subject.session.focus == .result)
-        #expect(subject.selectionContext.replacementError == nil)
         #expect(subject.selectionContext.canReplaceSelection)
+        #expect(subject.preferences.writingScene == "concise")
+        subject.model.showPreviewResult()
+        #expect(subject.session.returnAction(model: subject.model) == .replace)
+        subject.selectionContext.clear()
+        subject.performReturnAction()
+        #expect(subject.selectionContext.replacementError == nil)
+        #expect(subject.model.hasResult)
     }
 
     private func descendants(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap { descendants($0) } }
+
 }
 
 struct ShortcutSequenceGateTests {

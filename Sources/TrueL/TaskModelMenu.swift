@@ -12,7 +12,7 @@ struct TaskModelMenu: NSViewRepresentable {
         service.selection(for: mode)?.modelID ?? (service.availableSelections.isEmpty ? "配置 AI 服务" : "选择模型")
     }
     private var width: CGFloat {
-        min(maximumWidth, ceil((title as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: TypeScale.control)]).width) + 28)
+        min(maximumWidth, MenuMetrics.width(for: title))
     }
     func makeNSView(context: Context) -> SettingsMenuButton {
         SettingsMenuButton(frame: NSRect(x: 0, y: 0, width: width, height: SurfaceMetrics.controlHeight))

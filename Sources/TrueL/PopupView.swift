@@ -11,15 +11,16 @@ struct PopupView: View {
     @Bindable var session: PopupSession
     var onTranslateClipboard: () -> Void
     var onReplaceSelection: () -> Void
-    var onRefine: () -> Void
     var onModeChange: (WorkMode) -> Void
-    var onLanguageChange: () -> Void
+    var onSourceLanguageChange: (String) -> Void
+    var onTargetLanguageChange: (String) -> Void
+    var onStyleChange: (String) -> Void
+    var onSwapLanguages: () -> Void
     var onSettings: () -> Void
     var onPin: (Bool) -> Void
     var onHeightChange: (_ preferred: CGFloat, _ minimum: CGFloat) -> Void
     var availableHeight: () -> CGFloat = { 640 }
     @PopupState<CGFloat> private var measuredResultHeight = 180
-    @FocusState private var followUpFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var isQuick: Bool { session.presentation == .quick }
@@ -31,7 +32,7 @@ struct PopupView: View {
     private var quickHeight: CGFloat {
         min(availableHeight(), max(PopupLayout.baseHeight,
             WindowChromeMetrics.height + SurfaceMetrics.edge + PopupLayout.resultHeaderHeight
-                + measuredResultHeight + PopupLayout.followUpHeight))
+                + measuredResultHeight + PopupLayout.toolbarHeight))
     }
 
     var body: some View {
@@ -45,19 +46,8 @@ struct PopupView: View {
             .padding(.bottom, SurfaceMetrics.edge)
         }
         .onChange(of: quickHeight, initial: true) { _, height in updateWindowHeight(height) }
-        .onChange(of: session.presentation) { _, _ in
-            followUpFocused = false
-            updateWindowHeight(quickHeight)
-        }
-        .onChange(of: model.inputRevision) { _, _ in followUpFocused = false }
-        .onChange(of: followUpFocused) { _, focused in
-            if focused { session.focus = .followUp }
-            else if session.focus == .followUp { session.focus = .result }
-        }
-        .onChange(of: session.focus) { _, focus in
-            followUpFocused = focus == .followUp
-        }
-        .onExitCommand { model.cancel(); followUpFocused = false }
+        .onChange(of: session.presentation) { _, _ in updateWindowHeight(quickHeight) }
+        .onExitCommand { model.cancel() }
     }
 
     private func updateWindowHeight(_ height: CGFloat) {
@@ -116,7 +106,7 @@ struct PopupView: View {
             }
             .scrollIndicators(.automatic)
             .padding(.horizontal, SurfaceMetrics.inset)
-            followUp
+            resultToolbar
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .modifier(TrueLIsland())
@@ -126,19 +116,26 @@ struct PopupView: View {
         WindowChrome(dragIdentifier: "TrueL.main.drag") {
             HStack(spacing: 4) {
                 if model.accepted {
-                    Image(systemName: "checkmark").font(.system(size: 12, weight: .medium))
+                    PopupGlyph(.check, size: TypeScale.inlineSymbol)
                         .foregroundStyle(Theme.success).accessibilityLabel("已接受修改")
                         .frame(width: SurfaceMetrics.controlHeight, height: SurfaceMetrics.controlHeight)
                 }
+            Button(action: onSwapLanguages) {
+                PopupGlyph(.swap)
+            }
+            .buttonStyle(QuietIconStyle())
+            .disabled(isQuick || !model.canSwapLanguages)
+            .help("互换语言并翻译当前译文")
+            .accessibilityLabel("互换语言")
             Button { onPin(!preferences.alwaysOnTop) } label: {
                 PopupGlyph(preferences.alwaysOnTop ? .pinFilled : .pin)
                     .foregroundStyle(preferences.alwaysOnTop ? Theme.accent : Theme.secondary)
             }
             .buttonStyle(QuietIconStyle())
             .accessibilityLabel(preferences.alwaysOnTop ? "取消置顶" : "窗口置顶")
-            .help(preferences.alwaysOnTop ? "取消置顶后，点击外部收起" : "置顶后，点击外部保持显示")
+            .help(isQuick ? "快捷浮窗在点击外部后收起" : (preferences.alwaysOnTop ? "取消置顶后，点击外部收起" : "置顶后，点击外部保持显示"))
             Button(action: onSettings) {
-                Image(systemName: "slider.horizontal.3").font(.system(size: TypeScale.toolSymbol))
+                PopupGlyph(.settings)
             }.buttonStyle(QuietIconStyle()).help("设置").accessibilityLabel("设置")
             }
         }
@@ -168,7 +165,10 @@ struct PopupView: View {
                 .foregroundStyle(Theme.resultSecondary)
                 .padding(.leading, SurfaceMetrics.inset)
             Spacer(minLength: 12)
-            if model.mode == .translation { languageMenu }
+            NativeProviderMenu(selection: Binding(get: { model.sourceLanguage }, set: { onSourceLanguageChange($0) }),
+                choices: [TextLanguage.automatic] + Preferences.supportedLanguages,
+                accessibilityLabel: "原文语言", displayTitle: model.sourceLanguageTitle)
+                .fixedSize()
         }
         .frame(height: SurfaceMetrics.controlHeight)
     }
@@ -196,7 +196,7 @@ struct PopupView: View {
             HStack(spacing: 0) {
                 TaskModelMenu(service: service, mode: model.mode, maximumWidth: 180, onSettings: onSettings)
                 Button(action: onTranslateClipboard) {
-                    Image(systemName: "doc.on.clipboard").font(.system(size: TypeScale.toolSymbol))
+                    PopupGlyph(.clipboard)
                 }.buttonStyle(QuietIconStyle()).help("翻译剪贴板").accessibilityLabel("翻译剪贴板")
             }
             .fixedSize()
@@ -207,7 +207,7 @@ struct PopupView: View {
             } label: {
                 HStack(spacing: 8) {
                     if model.isProcessing {
-                        Image(systemName: "stop.fill").font(.system(size: TypeScale.inlineSymbol))
+                        PopupGlyph(.stop, size: TypeScale.inlineSymbol)
                         Text("停止")
                     } else {
                         Text(model.mode == .grammar ? "检查" : "翻译")
@@ -223,19 +223,15 @@ struct PopupView: View {
     }
 
     private var languageMenu: some View {
-        NativeProviderMenu(selection: Binding(get: { preferences.language }, set: { language in
-            guard language != preferences.language else { return }
-            followUpFocused = false
-            preferences.language = language
-            onLanguageChange()
-        }), choices: Preferences.supportedLanguages, accessibilityLabel: "目标语言")
-        .fixedSize()
+        NativeProviderMenu(selection: Binding(get: { model.resolvedTargetLanguage.rawValue }, set: { onTargetLanguageChange($0) }),
+            choices: Preferences.supportedLanguages.filter { $0 != model.resolvedSourceLanguage?.rawValue },
+            accessibilityLabel: "目标语言")
+            .fixedSize()
     }
 
     private func modeButton(_ mode: WorkMode, title: String) -> some View {
         Button {
             guard model.mode != mode else { return }
-            followUpFocused = false
             onModeChange(mode)
         } label: {
             Text(title).frame(width: 48)
@@ -259,36 +255,13 @@ struct PopupView: View {
                 .foregroundStyle(Theme.resultSecondary)
                 .padding(.leading, SurfaceMetrics.inset)
             Spacer(minLength: 8)
-            if model.hasResult {
-                Button { model.copyResult() } label: {
-                    PopupGlyph(model.copied ? .checkCircleFilled : .copy, size: TypeScale.toolSymbol)
-                        .foregroundStyle(model.copied ? Theme.resultSuccess : Theme.resultSecondary)
-                }
-                .buttonStyle(QuietIconStyle())
-                .accessibilityLabel(model.copied ? "已复制" : "复制结果")
-                .help(model.copied ? "已复制" : "复制结果")
-                Button {
-                    if isQuick { onReplaceSelection() }
-                    else { model.applyResult() }
-                } label: {
-                    HStack(spacing: 8) {
-                        Text("替换")
-                        ReturnGlyph()
-                    }
-                }
-                .buttonStyle(TrueLButtonStyle(role: primaryAction == .replace ? .primary : .tertiary))
-                .disabled(isQuick ? !selectionContext.canReplaceSelection : model.accepted)
-                .accessibilityLabel(isQuick ? "替换原选区" : "将结果放回原文编辑区")
-                .help(isQuick ? (selectionContext.canReplaceSelection ? "回车替换原应用中的选中文字"
-                    : "原选区不可编辑或已失效，可以复制结果") : "将结果放回左侧编辑区")
-            } else if isQuick, model.isProcessing {
-                Button { model.cancel() } label: {
-                    Image(systemName: "stop.fill").font(.system(size: TypeScale.inlineSymbol))
-                }.buttonStyle(QuietIconStyle()).accessibilityLabel("停止处理")
-            } else if isQuick, !model.input.isEmpty {
-                Button { model.submit() } label: {
-                    HStack(spacing: 8) { Text("重试"); ReturnGlyph() }
-                }.buttonStyle(TrueLButtonStyle(role: .primary))
+            if model.mode == .translation { languageMenu }
+            else {
+                Text(model.resolvedSourceLanguage?.rawValue ?? "原文语言")
+                    .font(.system(size: TypeScale.control))
+                    .foregroundStyle(Theme.resultSecondary)
+                    .padding(.horizontal, SurfaceMetrics.inset)
+                    .help("改写保持原文语言")
             }
         }
         .frame(height: PopupLayout.iconButtonSize)
@@ -305,40 +278,63 @@ struct PopupView: View {
         .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
     }
 
-    private var followUp: some View {
+    private var resultToolbar: some View {
         HStack(spacing: 8) {
-            ZStack(alignment: .leading) {
-                if model.followUp.isEmpty {
-                    Text(model.mode == .translation ? "继续调整译文" : "继续调整措辞")
-                        .font(.system(size: 12)).foregroundStyle(Theme.secondary)
-                        .allowsHitTesting(false).accessibilityHidden(true)
+            HStack(spacing: 0) {
+                NativeProviderMenu(selection: Binding(get: { model.currentStyle.title }, set: { title in
+                    if let style = TextStyle.choices(for: model.mode).first(where: { $0.title == title }) {
+                        onStyleChange(style.id)
+                    }
+                }), choices: TextStyle.choices(for: model.mode).map(\.title),
+                    accessibilityLabel: model.mode == .translation ? "翻译风格" : "改写风格")
+                .fixedSize()
+                Button { model.copyResult() } label: {
+                    PopupGlyph(model.copied ? .checkCircleFilled : .copy, size: TypeScale.toolSymbol)
+                        .foregroundStyle(model.copied ? Theme.resultSuccess : Theme.resultSecondary)
                 }
-                TextField("", text: $model.followUp)
-                    .textFieldStyle(.plain).font(.system(size: 12))
-                    .focused($followUpFocused).onSubmit(onRefine)
-                    .accessibilityLabel("追问或调整要求")
+                .buttonStyle(QuietIconStyle())
+                .disabled(!model.hasResult)
+                .accessibilityLabel(model.copied ? "已复制" : "复制结果")
+                .help(model.copied ? "已复制" : "复制结果")
             }
-            .padding(.horizontal, SurfaceMetrics.inset)
-            .frame(height: SurfaceMetrics.controlHeight)
-            .modifier(TrueLField(focused: followUpFocused))
-            Button(action: onRefine) {
-                ReturnGlyph()
+            .fixedSize()
+            Spacer(minLength: 8)
+            if isQuick && model.isProcessing {
+                Button { model.cancel() } label: {
+                    HStack(spacing: 8) {
+                        PopupGlyph(.stop, size: TypeScale.inlineSymbol)
+                        Text("停止")
+                    }
+                }.buttonStyle(TrueLButtonStyle(role: .secondary)).accessibilityLabel("停止处理")
+            } else if isQuick && !model.hasResult && !model.input.isEmpty {
+                Button { model.submit() } label: {
+                    HStack(spacing: 8) { Text("重试"); ReturnGlyph() }
+                }.buttonStyle(TrueLButtonStyle(role: .primary))
+            } else {
+                Button {
+                    if isQuick { onReplaceSelection() }
+                    else { model.applyResult() }
+                } label: {
+                    HStack(spacing: 8) { Text("替换"); ReturnGlyph() }
+                }
+                .buttonStyle(TrueLButtonStyle(role: primaryAction == .replace ? .primary : .secondary))
+                .disabled(!model.hasResult || (isQuick && !selectionContext.canReplaceSelection))
+                .accessibilityLabel(isQuick ? "替换原选区" : "将结果放回原文编辑区")
+                .help(isQuick ? (selectionContext.canReplaceSelection ? "回车替换原应用中的选中文字"
+                    : "原选区不可编辑或已失效，可以复制结果") : "将结果放回左侧编辑区")
             }
-            .buttonStyle(TrueLButtonStyle(role: primaryAction == .refine ? .primary : .tertiary, iconOnly: true))
-            .accessibilityLabel("提交调整要求").help("回车提交调整要求")
-            .disabled(!session.canPerform(.refine, model: model, selection: selectionContext))
         }
-        .disabled(model.isProcessing || !model.hasResult)
+        .frame(height: SurfaceMetrics.controlHeight)
         .padding(.top, SurfaceMetrics.relatedGap)
-        .padding(.horizontal, SurfaceMetrics.inset).padding(.bottom, SurfaceMetrics.inset)
+        .padding(.horizontal, SurfaceMetrics.inset)
+        .padding(.bottom, SurfaceMetrics.inset)
     }
 
 }
 
 private struct ReturnGlyph: View {
     var body: some View {
-        Image(systemName: "return")
-            .font(.system(size: TypeScale.inlineSymbol, weight: .medium))
+        PopupGlyph(.enter, size: TypeScale.inlineSymbol)
             .accessibilityHidden(true)
     }
 }

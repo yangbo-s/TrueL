@@ -119,14 +119,16 @@ final class SettingsMenuButton: NSButton {
         ]
         let string = NSAttributedString(string: title, attributes: attributes)
         let height = string.size().height
-        string.draw(in: NSRect(x: 12, y: (bounds.height - height) / 2,
-                              width: max(bounds.width - (compact ? 28 : 40), 0), height: height))
-        let arrowColor = NSColor(Theme.secondary).withAlphaComponent(isEnabled ? 1 : 0.45)
-        let configuration = NSImage.SymbolConfiguration(pointSize: 8, weight: .medium)
-            .applying(NSImage.SymbolConfiguration(paletteColors: [arrowColor]))
-        NSImage(systemSymbolName: compact ? "chevron.down" : "chevron.up.chevron.down", accessibilityDescription: nil)?
-            .withSymbolConfiguration(configuration)?
-            .draw(in: NSRect(x: bounds.width - (compact ? 12 : 20), y: (bounds.height - 8) / 2, width: 8, height: 8))
+        string.draw(in: MenuMetrics.textRect(in: bounds, height: height))
+        let configuration = NSImage.SymbolConfiguration(pointSize: TypeScale.accessory, weight: .regular)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [ink]))
+        if let arrow = NSImage(systemSymbolName: "chevron.down", accessibilityDescription: nil)?.withSymbolConfiguration(configuration) {
+            let slot = MenuMetrics.arrowRect(in: bounds)
+            let scale = min(slot.width / arrow.size.width, slot.height / arrow.size.height)
+            let size = NSSize(width: arrow.size.width * scale, height: arrow.size.height * scale)
+            arrow.draw(in: NSRect(x: slot.midX - size.width / 2, y: slot.midY - size.height / 2,
+                                  width: size.width, height: size.height))
+        }
     }
 
     func refreshPalette(animated: Bool) {

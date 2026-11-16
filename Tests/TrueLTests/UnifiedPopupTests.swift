@@ -106,7 +106,6 @@ struct UnifiedPopupTests {
         let original = try #require(subject.panel)
         subject.model.loadSample(0)
         subject.model.showPreviewResult()
-        subject.model.followUp = "更自然一点"
         let input = subject.model.input
         let output = subject.model.output
 
@@ -114,7 +113,6 @@ struct UnifiedPopupTests {
         #expect(subject.panel === original)
         #expect(subject.model.input == input)
         #expect(subject.model.output == output)
-        #expect(subject.model.followUp == "更自然一点")
         #expect(subject.model.hasResult)
         #expect(!subject.model.isProcessing)
     }

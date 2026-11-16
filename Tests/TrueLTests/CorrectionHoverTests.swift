@@ -29,7 +29,11 @@ struct CorrectionHoverTests {
         #expect(subject.activeID == id)
         subject.contentHover(id, inside: false)
         #expect(subject.activeID == id)
-        try await Task.sleep(for: .milliseconds(50))
+        // Window creation can occupy the main actor before the hide task starts.
+        let deadline = ContinuousClock.now + .seconds(1)
+        while subject.activeID != nil, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(5))
+        }
         #expect(subject.activeID == nil)
     }
 

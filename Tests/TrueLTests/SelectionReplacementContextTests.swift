@@ -109,7 +109,7 @@ struct SelectionReplacementContextTests {
         #expect(context.canReplaceSelection)
     }
 
-    @Test func translatingCopyingAndRefiningKeepOriginalSelectionBound() async {
+    @Test func translatingCopyingAndRestylingKeepOriginalSelectionBound() async {
         let model = model()
         model.mode = .translation
         let context = SelectionReplacementContext(model: model)
@@ -121,8 +121,8 @@ struct SelectionReplacementContextTests {
         #expect(model.copied)
         #expect(context.canReplaceSelection)
 
-        model.followUp = "更简洁一点"
-        model.refine()
+        model.translationStyle = "concise"
+        model.submit()
         #expect(context.canReplaceSelection)
         await waitForResult(model)
         #expect(context.canReplaceSelection)

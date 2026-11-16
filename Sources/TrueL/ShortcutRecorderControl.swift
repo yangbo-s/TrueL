@@ -40,7 +40,7 @@ struct ShortcutRecorderControl: View {
                         .accessibilityIdentifier("TrueL.shortcut.\(action.rawValue)")
                         if store.bindings[action] != nil {
                             Button { store.clearBinding(for: action) } label: {
-                                Image(systemName: "xmark").font(.system(size: 10, weight: .medium))
+                                PopupGlyph(.close, size: TypeScale.inlineSymbol)
                                     .frame(width: SurfaceMetrics.embeddedSize, height: SurfaceMetrics.embeddedSize).contentShape(Rectangle())
                             }
                             .buttonStyle(QuietIconStyle(embedded: true))

@@ -111,6 +111,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @objc func showPanel() {
+        endQuickSession()
+        presentPanel()
+    }
+
+    /// Only captured shortcut input may enter the transient presentation.
+    private func presentPanel() {
         panelDismissal?.cancel()
         shortcuts.cancelRecording()
         settings?.orderOut(nil)
@@ -138,9 +144,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 selectionContext: selectionContext, session: session,
                 onTranslateClipboard: { [weak self] in self?.translateClipboard() },
                 onReplaceSelection: { [weak self] in self?.replaceSelection() },
-                onRefine: { [weak self] in self?.refineResult() },
                 onModeChange: { [weak self] mode in self?.changeWorkMode(mode) },
-                onLanguageChange: { [weak self] in self?.changeTranslationLanguage() },
+                onSourceLanguageChange: { [weak self] language in self?.changeSourceLanguage(language) },
+                onTargetLanguageChange: { [weak self] language in self?.changeTranslationLanguage(language) },
+                onStyleChange: { [weak self] style in self?.changeStyle(style) },
+                onSwapLanguages: { [weak self] in self?.swapLanguages() },
                 onSettings: { [weak self] in self?.openSettings() },
                 onPin: { [weak self] value in self?.preferences.alwaysOnTop = value },
                 onHeightChange: { [weak self] preferred, minimum in
@@ -165,6 +173,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func showSettings(page: SettingsPage) {
         shortcuts.cancelRecording()
         panel?.orderOut(nil)
+        endQuickSession()
         if settings == nil {
             settings = NSWindow(contentRect: NSRect(x: 0, y: 0, width: SettingsLayout.width, height: SettingsLayout.height),
                                 styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -269,10 +278,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private func dismissUnpinnedPanel() {
         guard let panel, panel.isVisible, !panel.isMiniaturized, !panelIsMiniaturizing,
-              !preferences.alwaysOnTop else { return }
+              session.presentation == .quick || !preferences.alwaysOnTop else { return }
         clearSelection()
         panel.orderOut(nil)
-        // Keep the draft, result and in-flight request for the next explicit opening.
+        endQuickSession()
+        // Normal workspaces keep their in-flight request; quick sessions end here.
     }
 
     func windowWillClose(_ notification: Notification) {
@@ -328,6 +338,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             settings?.level = panel?.level ?? .normal
             model.targetLanguage = preferences.language
             model.writingStyle = preferences.writingScene
+            model.translationStyle = preferences.translationStyle
         } onChange: { [weak self] in
             Task { @MainActor in self?.observePreferences() }
         }
@@ -372,6 +383,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         model.cancel()
         clearSelection()
         panel?.orderOut(nil)
+        endQuickSession()
+    }
+
+    private func endQuickSession() {
+        guard session.presentation == .quick else { return }
+        model.cancel()
+        clearSelection()
+        setPresentation(.workspace)
     }
 
     private func clearSelection() {
@@ -394,6 +413,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         selectionContext.clear()
         model.mode = mode
         model.targetLanguage = preferences.language
+        model.translationStyle = preferences.translationStyle
+        model.writingStyle = preferences.writingScene
+        model.sourceLanguage = TextLanguage.automatic
         model.input = text
         selectionContext.bind(canReplace: canReplaceSelection)
         if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -402,7 +424,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         } else {
             model.submit()
         }
-        showPanel()
+        presentPanel()
     }
 
     func changeWorkMode(_ mode: WorkMode) {
@@ -411,7 +433,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         panel?.makeFirstResponder(nil)
         session.focus = .result
         model.mode = mode
-        model.followUp = ""
         if session.presentation == .quick {
             // The source text is unchanged. Never revive an already invalid binding;
             // the AX bridge still revalidates the original control and range on use.
@@ -423,9 +444,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
-    private func changeTranslationLanguage() {
-        model.targetLanguage = preferences.language
-        guard model.mode == .translation, panel?.isVisible == true, !model.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+    func changeSourceLanguage(_ language: String) {
+        guard language == TextLanguage.automatic || TextLanguage(rawValue: language) != nil,
+              language != model.sourceLanguage else { return }
+        let regenerate = model.hasResult || model.isProcessing || session.presentation == .quick
+        model.sourceLanguage = language
+        if regenerate && model.canSubmit { model.submit() }
+    }
+
+    func changeTranslationLanguage(_ language: String) {
+        guard model.mode == .translation, TextLanguage(rawValue: language) != nil,
+              language != model.resolvedSourceLanguage?.rawValue, language != model.resolvedTargetLanguage.rawValue else { return }
+        let regenerate = model.hasResult || model.isProcessing || session.presentation == .quick
+        preferences.language = language
+        model.targetLanguage = language
+        if regenerate && model.canSubmit { model.submit() }
+    }
+
+    func changeStyle(_ style: String) {
+        guard TextStyle.choices(for: model.mode).contains(where: { $0.id == style }),
+              style != model.currentStyle.id else { return }
+        let regenerate = model.hasResult || model.isProcessing || session.presentation == .quick
+        if model.mode == .translation {
+            preferences.translationStyle = style
+            model.translationStyle = style
+        } else {
+            preferences.writingScene = style
+            model.writingStyle = style
+        }
+        if regenerate && model.canSubmit { model.submit() }
+    }
+
+    func swapLanguages() {
+        guard session.presentation == .workspace, model.canSwapLanguages else { return }
+        clearSelection()
+        model.swapLanguages()
+        preferences.language = model.targetLanguage
         model.submit()
     }
 
@@ -467,16 +521,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         switch action {
         case .submit: model.submit()
         case .replace: replaceSelection()
-        case .refine: refineResult()
         case .none: break
         }
-    }
-
-    func refineResult() {
-        guard session.canPerform(.refine, model: model, selection: selectionContext) else { return }
-        panel?.makeFirstResponder(nil)
-        session.focus = .result
-        model.refine()
     }
 
     func handleShortcut(_ action: ShortcutAction) {
@@ -495,7 +541,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 setPresentation(.quick)
                 model.mode = action == .selectionTranslation ? .translation : .grammar
                 model.reportInputError("未能读取选区。请先复制文字，使用“翻译剪贴板”，或在设置中开启辅助功能权限。")
-                showPanel()
+                presentPanel()
             }
         case .clipboardTranslation:
             translateClipboard()

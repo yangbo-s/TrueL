@@ -91,17 +91,16 @@ struct DemoModelTests {
         #expect(subject.hasResult)
     }
 
-    @Test func followupChangesOutputAndConsumesRequest() async throws {
+    @Test func changingStyleClearsResultWithoutChangingSourceRevision() {
         let subject = model()
         subject.showPreviewResult()
-        subject.followUp = "更简洁一点"
-        subject.refine()
-        #expect(subject.followUp.isEmpty)
-        try await waitForResult(subject)
-        #expect(subject.output == "Enjoy! You're not the only one.")
-        #expect(subject.grammarOutcome == .edited)
-        #expect(subject.grammarTranslation == "玩得开心！你不是唯一一个。")
-        #expect(subject.tip.contains("更简洁一点"))
+        let revision = subject.inputRevision
+        let source = subject.input
+        subject.writingStyle = "concise"
+        #expect(!subject.hasResult)
+        #expect(subject.input == source)
+        #expect(subject.inputRevision == revision)
+        #expect(subject.currentStyle.id == "concise")
     }
 
     @Test func grammarAuxiliaryContentAppearsOnlyAfterStreamingCompletes() async throws {
@@ -145,50 +144,37 @@ struct DemoModelTests {
         #expect(subject.grammarOutcome == .unverified)
     }
 
-    @Test func refinedResultSupportsCopyFurtherRefinementAndReplacement() async throws {
+    @Test func restyledResultSupportsCopyAndReplacement() async throws {
         var copiedText = ""
         let subject = DemoModel(processingDelay: .zero, streamDelay: .milliseconds(1), copyText: { copiedText = $0 })
         subject.showPreviewResult()
-        subject.followUp = "更简洁一点"
-        subject.refine()
+        subject.writingStyle = "concise"
+        subject.submit()
         try await waitForResult(subject)
         #expect(subject.grammarOutcome == .edited)
-        #expect(subject.corrections.isEmpty)
-        #expect(subject.hasResult)
         subject.copyResult()
         #expect(copiedText == subject.output)
         #expect(subject.copied)
-
-        subject.followUp = "再自然一点"
-        subject.refine()
-        #expect(subject.isProcessing)
-        #expect(subject.grammarOutcome == .unverified)
-        try await waitForResult(subject)
-        #expect(subject.grammarOutcome == .edited)
-        #expect(subject.tip.contains("再自然一点"))
-        let refinedText = subject.output
+        let result = subject.output
         subject.applyResult()
-        #expect(subject.input == refinedText)
+        #expect(subject.input == result)
         #expect(subject.accepted)
         #expect(!subject.hasResult)
-        #expect(subject.grammarOutcome == .unverified)
     }
 
-    @Test func translationRefinementDoesNotPublishGrammarAuxiliaryContent() async throws {
+    @Test func otherTaskStyleDoesNotCancelResultAndTranslationHasNoGrammarContent() async throws {
         let subject = model()
         subject.showPreviewResult()
-        #expect(!subject.grammarTranslation.isEmpty)
+        let result = subject.output
+        subject.translationStyle = "literal"
+        #expect(subject.output == result)
         subject.mode = .translation
-        #expect(subject.grammarTranslation.isEmpty)
-        #expect(subject.tip.isEmpty)
-        subject.showPreviewResult()
-        subject.followUp = "更口语一点"
-        subject.refine()
+        subject.submit()
         try await waitForResult(subject)
+        subject.writingStyle = "social"
         #expect(subject.hasResult)
         #expect(subject.grammarTranslation.isEmpty)
-        #expect(subject.corrections.isEmpty)
-        #expect(subject.tip.isEmpty)
+        #expect(subject.corrections.isEmpty && subject.tip.isEmpty)
     }
 
     @Test func duplicateSubmitDoesNotRestartWork() async throws {

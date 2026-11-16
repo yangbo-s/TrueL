@@ -25,6 +25,25 @@ enum TypeScale {
     static let accessory: CGFloat = 8
 }
 
+/// Text and the chevron have equal outer insets; flexible space stays between them.
+@MainActor
+enum MenuMetrics {
+    static let inset: CGFloat = 12
+    static let gap: CGFloat = 8
+    static let arrowSize: CGFloat = 8
+    static var chromeWidth: CGFloat { inset * 2 + gap + arrowSize }
+    static func width(for title: String) -> CGFloat {
+        ceil((title as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: TypeScale.control)]).width) + chromeWidth
+    }
+    static func textRect(in bounds: NSRect, height: CGFloat) -> NSRect {
+        NSRect(x: bounds.minX + inset, y: bounds.midY - height / 2,
+               width: max(0, bounds.width - chromeWidth), height: height)
+    }
+    static func arrowRect(in bounds: NSRect) -> NSRect {
+        NSRect(x: bounds.maxX - inset - arrowSize, y: bounds.midY - arrowSize / 2, width: arrowSize, height: arrowSize)
+    }
+}
+
 @MainActor
 enum BodyTextStyle {
     static let lineHeight: CGFloat = 22
@@ -54,7 +73,7 @@ enum PopupLayout {
     static let iconButtonSize: CGFloat = SurfaceMetrics.controlHeight
     static let controlHeight: CGFloat = SurfaceMetrics.controlHeight
     static let resultHeaderHeight: CGFloat = 48
-    static let followUpHeight: CGFloat = 48
+    static let toolbarHeight: CGFloat = 48
 }
 
 enum SettingsLayout {
@@ -290,7 +309,7 @@ struct TrueLInlineStatus: View {
     }
     var body: some View {
         HStack(alignment: .top, spacing: SurfaceMetrics.relatedGap) {
-            Image(systemName: symbol).foregroundStyle(ink)
+            PopupGlyph(symbol: symbol).foregroundStyle(ink)
                 .frame(width: TypeScale.inlineSymbol, height: 16)
             Text(text).foregroundStyle(Theme.secondary).textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)

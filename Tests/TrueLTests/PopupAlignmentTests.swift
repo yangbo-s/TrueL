@@ -73,20 +73,17 @@ extension UnifiedPopupTests {
     }
 
     @Test(arguments: [PopupPresentation.workspace, .quick])
-    func translationRemainsReadableWhenFocusMovesToAdjustment(presentation: PopupPresentation) async throws {
+    func translationRemainsReadableAfterStyleChanges(presentation: PopupPresentation) async throws {
         let subject = AppDelegate(preview: true)
         subject.snapshotRunning = true
-        subject.setPresentation(presentation)
-        subject.model.mode = .translation
-        subject.model.input = "Haha, enjoy~\n\nYou not the last one."
-        subject.showPanel()
+        subject.beginInput("Haha, enjoy~\n\nYou not the last one.", mode: .translation, presentation: presentation)
         subject.model.showPreviewResult()
         let panel = try #require(subject.panel)
         defer { subject.model.cancel(); panel.delegate = nil; panel.close(); panel.contentView = nil }
         try await Task.sleep(for: .milliseconds(150))
-        for focused in [true, false, true] {
-            subject.session.focus = focused ? .followUp : .result
-            subject.model.followUp = focused ? "更自然一些" : ""
+        for style in ["literal", "concise", "standard"] {
+            subject.changeStyle(style)
+            subject.model.showPreviewResult()
             try await Task.sleep(for: .milliseconds(100))
             let root = try #require(panel.contentView)
             let text = try #require(descendantViews(root).compactMap { $0 as? NSTextView }

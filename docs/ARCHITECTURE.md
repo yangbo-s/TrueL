@@ -9,7 +9,7 @@
 | 模块 | 职责 |
 | --- | --- |
 | App / PopupSession / NativeSurface | 主浮窗、设置窗口、原生窗口控制和失焦收起 |
-| DemoModel / LanguageEngine | 编辑状态、取消、翻译和改写请求、结果解析 |
+| DemoModel / LanguageEngine / LanguageOptions | 编辑状态、取消、语言检测与互换、风格指令和结果解析 |
 | ServiceConfiguration | 账号验证、模型目录、按任务保存选择及旧配置迁移 |
 | AIClient / AIProvider | 固定服务端点、鉴权、分页目录、文本生成和安全错误信息 |
 | CredentialStore / CredentialBrokerClient | 异步调用固定 XPC 凭据组件；测试用内存实现 |
@@ -49,6 +49,14 @@
 
 ## 快速工作流
 
-`PopupSession.presentation` 在同一个 NSPanel 内切换 `quick`（仅结果）与 `workspace`（左右对照）；窗口尺寸分别记忆，设置页仍与工作窗互斥。`returnAction` 是键盘派发与绿色按钮样式的共同来源。调整框焦点优先于替换，空指令不能回退到替换；原生编辑控件自行处理 IME 与 Shift+Return。
+`PopupSession.presentation` 在同一个 NSPanel 内切换 `quick`（仅结果）与 `workspace`（左右对照）；窗口尺寸分别记忆，设置页仍与工作窗互斥。`returnAction` 是键盘派发与绿色按钮样式的共同来源。普通打开强制 workspace，只有快捷输入进入 quick；快速失焦、关闭及进入设置会结束临时会话并取消未完成请求。原生编辑控件自行处理 IME 与 Shift+Return。
 
 `ShortcutSequenceGate` 只暂存配置的非复制序列前缀，在匹配时丢弃原事件并触发动作，超时、失配、鼠标点击、切换应用或监听暂停时归还原事件至原进程。回放带内部标记防止再次匹配，不记录输入文本。Command+C 开头的自定义序列保持透传。非复制序列需辅助功能与输入监控权限。快捷键 ID 与 v2 存储保留，`TrueL.shortcuts.quickDefaults.v1` 标记一次性默认值迁移，自定义与禁用不被复原。
+
+## 语言与风格
+
+`TextLanguage` 定义八种语言；自动模式使用本地 NaturalLanguage，置信度不足或短内容保留自动状态。`sourceLanguage` 独立于偏好目标；`resolvedTargetLanguage` 在已知同语言时回退到另一语言。互换要求普通翻译已完成且源语言已知，交换语言并将译文写入原文后重新请求。
+
+`TextStyle` 是设置和浮窗共用的稳定 ID、标题与提示词目录。`TrueL.translationStyle` 与原有 `TrueL.writingScene` 分别保存翻译和改写风格；改写始终保留原语言。重生成使用原文，不叠加处理上一版结果。旧追加指令接口移除。
+
+语言、风格、模型与设置下拉框统一使用 `SettingsMenuButton`，由 `MenuMetrics` 提供对称外边距与箭头槽位。SwiftUI 图标共用 `PopupGlyph` 的 SF Symbols regular/monochrome 渲染，原生菜单使用同库同字重。
