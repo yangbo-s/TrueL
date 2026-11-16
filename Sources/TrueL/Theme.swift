@@ -42,6 +42,7 @@ enum WindowChromeMetrics {
     static let contentGap: CGFloat = 0
     static let trafficLightFirstCenter: CGFloat = 20
     static let trafficLightPitch: CGFloat = 20
+    static let leadingContentInset: CGFloat = 80
 }
 
 // Geometry is shared by the AppKit window and its SwiftUI content.
@@ -131,14 +132,14 @@ struct WindowChrome<Trailing: View>: View {
     var body: some View {
         ZStack {
             WindowDragRegion(identifier: dragIdentifier)
-                .padding(.leading, 80).padding(.trailing, 104)
+                .padding(.leading, WindowChromeMetrics.leadingContentInset).padding(.trailing, 104)
             Group {
                 if let title { Text(title).font(.system(size: TypeScale.value, weight: .medium)).foregroundStyle(Theme.text) }
                 else { TrueLWordmark(size: TypeScale.value) }
             }
             .allowsHitTesting(false)
             HStack(spacing: 0) {
-                Spacer(minLength: 80)
+                Spacer(minLength: WindowChromeMetrics.leadingContentInset)
                 trailing
             }
             .padding(.trailing, SurfaceMetrics.edge)

@@ -39,6 +39,42 @@ struct PopupReturnTests {
 
 @MainActor
 extension UnifiedPopupTests {
+    @Test(arguments: ["editable", "readonly", "failed"])
+    func quickModeSwitchReprocessesSourceWithoutRevivingInvalidSelection(source: String) {
+        let subject = AppDelegate(preview: true)
+        subject.setPresentation(.quick)
+        subject.model.input = "A selected sentence."
+        subject.model.showPreviewResult()
+        subject.selectionContext.bind(canReplace: source != "readonly")
+        if source == "failed" { subject.selectionContext.fail("The selection changed.") }
+        subject.session.focus = .followUp
+        subject.model.followUp = "Make it shorter."
+        subject.changeWorkMode(.translation)
+        defer { subject.model.cancel() }
+        #expect(subject.model.mode == .translation)
+        #expect(subject.model.input == "A selected sentence.")
+        #expect(subject.model.isProcessing)
+        #expect(subject.model.output.isEmpty && subject.model.followUp.isEmpty)
+        #expect(subject.session.focus == .result)
+        #expect(subject.selectionContext.canReplaceSelection == (source == "editable"))
+    }
+
+    @Test func workspaceModeSwitchWaitsForSubmissionAndQuickEmptySourceDoesNotSubmit() {
+        let subject = AppDelegate(preview: true)
+        subject.model.showPreviewResult()
+        subject.selectionContext.bind(canReplace: true)
+        let input = subject.model.input
+        subject.changeWorkMode(.translation)
+        #expect(subject.model.input == input)
+        #expect(subject.model.output.isEmpty && !subject.model.isProcessing)
+        #expect(!subject.selectionContext.canReplaceSelection)
+        subject.setPresentation(.quick)
+        subject.model.reset()
+        subject.changeWorkMode(.grammar)
+        #expect(!subject.model.isProcessing)
+        #expect(subject.model.errorMessage != nil)
+    }
+
     @Test func quickAndWorkspaceShareWindowAndRememberIndependentSizes() async throws {
         let subject = AppDelegate(preview: true)
         subject.snapshotRunning = true

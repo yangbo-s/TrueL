@@ -12,6 +12,7 @@ struct PopupView: View {
     var onTranslateClipboard: () -> Void
     var onReplaceSelection: () -> Void
     var onRefine: () -> Void
+    var onModeChange: (WorkMode) -> Void
     var onLanguageChange: () -> Void
     var onSettings: () -> Void
     var onPin: (Bool) -> Void
@@ -66,7 +67,7 @@ struct PopupView: View {
 
     private var sourceIsland: some View {
         VStack(spacing: 0) {
-            modeBar
+            sourceHeader
                 .padding(.horizontal, SurfaceMetrics.inset)
                 .padding(.top, SurfaceMetrics.inset)
                 .padding(.bottom, SurfaceMetrics.relatedGap)
@@ -141,6 +142,13 @@ struct PopupView: View {
             }.buttonStyle(QuietIconStyle()).help("设置").accessibilityLabel("设置")
             }
         }
+        .overlay(alignment: .leading) {
+            HStack(spacing: 4) {
+                modeButton(.translation, title: "翻译")
+                modeButton(.grammar, title: "改写")
+            }
+            .padding(.leading, WindowChromeMetrics.leadingContentInset)
+        }
         .contentShape(Rectangle())
         .contextMenu {
             Button("语法检查示例") { model.mode = .grammar; model.loadSample(0) }
@@ -153,10 +161,12 @@ struct PopupView: View {
         }
     }
 
-    private var modeBar: some View {
+    private var sourceHeader: some View {
         HStack(spacing: 4) {
-            modeButton(.translation, title: "翻译")
-            modeButton(.grammar, title: "改写")
+            Text("原有内容")
+                .font(.system(size: TypeScale.control, weight: .semibold))
+                .foregroundStyle(Theme.resultSecondary)
+                .padding(.leading, SurfaceMetrics.inset)
             Spacer(minLength: 12)
             if model.mode == .translation { languageMenu }
         }
@@ -201,8 +211,7 @@ struct PopupView: View {
                         Text("停止")
                     } else {
                         Text(model.mode == .grammar ? "检查" : "翻译")
-                        Image(systemName: "return").font(.system(size: 11))
-                            .opacity(primaryAction == .submit ? 1 : 0)
+                        ReturnGlyph()
                     }
                 }
             }
@@ -226,7 +235,8 @@ struct PopupView: View {
     private func modeButton(_ mode: WorkMode, title: String) -> some View {
         Button {
             guard model.mode != mode else { return }
-            model.mode = mode
+            followUpFocused = false
+            onModeChange(mode)
         } label: {
             Text(title).frame(width: 48)
         }
@@ -263,10 +273,7 @@ struct PopupView: View {
                 } label: {
                     HStack(spacing: 8) {
                         Text("替换")
-                        if isQuick {
-                            Image(systemName: "return").font(.system(size: 11))
-                                .opacity(primaryAction == .replace ? 1 : 0)
-                        }
+                        ReturnGlyph()
                     }
                 }
                 .buttonStyle(TrueLButtonStyle(role: primaryAction == .replace ? .primary : .tertiary))
@@ -280,7 +287,7 @@ struct PopupView: View {
                 }.buttonStyle(QuietIconStyle()).accessibilityLabel("停止处理")
             } else if isQuick, !model.input.isEmpty {
                 Button { model.submit() } label: {
-                    HStack(spacing: 8) { Text("重试"); Image(systemName: "return") }
+                    HStack(spacing: 8) { Text("重试"); ReturnGlyph() }
                 }.buttonStyle(TrueLButtonStyle(role: .primary))
             }
         }
@@ -315,8 +322,7 @@ struct PopupView: View {
             .frame(height: SurfaceMetrics.controlHeight)
             .modifier(TrueLField(focused: followUpFocused))
             Button(action: onRefine) {
-                Image(systemName: primaryAction == .refine ? "return" : "arrow.up")
-                    .font(.system(size: TypeScale.inlineSymbol, weight: .medium))
+                ReturnGlyph()
             }
             .buttonStyle(TrueLButtonStyle(role: primaryAction == .refine ? .primary : .tertiary, iconOnly: true))
             .accessibilityLabel("提交调整要求").help("回车提交调整要求")
@@ -327,6 +333,14 @@ struct PopupView: View {
         .padding(.horizontal, SurfaceMetrics.inset).padding(.bottom, SurfaceMetrics.inset)
     }
 
+}
+
+private struct ReturnGlyph: View {
+    var body: some View {
+        Image(systemName: "return")
+            .font(.system(size: TypeScale.inlineSymbol, weight: .medium))
+            .accessibilityHidden(true)
+    }
 }
 
 private struct AnalysisTip: View {

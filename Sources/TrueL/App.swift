@@ -139,6 +139,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 onTranslateClipboard: { [weak self] in self?.translateClipboard() },
                 onReplaceSelection: { [weak self] in self?.replaceSelection() },
                 onRefine: { [weak self] in self?.refineResult() },
+                onModeChange: { [weak self] mode in self?.changeWorkMode(mode) },
                 onLanguageChange: { [weak self] in self?.changeTranslationLanguage() },
                 onSettings: { [weak self] in self?.openSettings() },
                 onPin: { [weak self] value in self?.preferences.alwaysOnTop = value },
@@ -402,6 +403,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             model.submit()
         }
         showPanel()
+    }
+
+    func changeWorkMode(_ mode: WorkMode) {
+        guard mode != model.mode else { return }
+        let keepsSelection = session.presentation == .quick && selectionContext.canReplaceSelection
+        panel?.makeFirstResponder(nil)
+        session.focus = .result
+        model.mode = mode
+        model.followUp = ""
+        if session.presentation == .quick {
+            // The source text is unchanged. Never revive an already invalid binding;
+            // the AX bridge still revalidates the original control and range on use.
+            selectionContext.bind(canReplace: keepsSelection)
+            if model.canSubmit { model.submit() }
+            else { model.reportInputError("没有读取到选中文字。请选中文字后重试。") }
+        } else {
+            clearSelection()
+        }
     }
 
     private func changeTranslationLanguage() {
