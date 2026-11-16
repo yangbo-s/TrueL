@@ -8,13 +8,13 @@
 
 | 模块 | 职责 |
 | --- | --- |
-| App / NativeSurface | 主浮窗、设置窗口、原生窗口控制和失焦收起 |
+| App / PopupSession / NativeSurface | 主浮窗、设置窗口、原生窗口控制和失焦收起 |
 | DemoModel / LanguageEngine | 编辑状态、取消、翻译和改写请求、结果解析 |
 | ServiceConfiguration | 账号验证、模型目录、按任务保存选择及旧配置迁移 |
 | AIClient / AIProvider | 固定服务端点、鉴权、分页目录、文本生成和安全错误信息 |
 | CredentialStore / CredentialBrokerClient | 异步调用固定 XPC 凭据组件；测试用内存实现 |
 | CredentialCore / TrueLCredentialBroker | 双向认证、串行钥匙串访问与旧条目迁移；普通更新原样保留组件 |
-| ShortcutStore / ShortcutMonitor | 组合键与连续按键录制、冲突检查、全局匹配 |
+| ShortcutStore / ShortcutMonitor | 组合键与连续按键录制、冲突检查、全局匹配；非复制前缀暂存与失配回放 |
 | SelectionBridge / SelectionReplacementContext | 获取选区、来源有效性和安全替换 |
 | AppUpdater | Sparkle 控制器、更新菜单与自动检查偏好 |
 | Snapshot / PreviewAIClient | 内存配置、模拟响应和逐页窗口截图 |
@@ -46,3 +46,9 @@
 发布元数据集中在 `Config/release.json`。构建写入版本、HTTPS feed URL 和 Ed25519 公钥，保留应用 bundle identifier。Sparkle Framework 由 SwiftPM 固定版本，内层可执行文件先签名，再签 Framework 和应用。
 
 更新源和安装包都使用 Ed25519 签名；私钥留在发布者本机钥匙串。`SURequireSignedFeed` 与 `SUVerifyUpdateBeforeExtraction` 同时启用，安装包在解压前验证；签名失败的更新源始终拒绝。预览和测试启动不创建 Sparkle 控制器，也不读取用户 Key 或系统权限。
+
+## 快速工作流
+
+`PopupSession.presentation` 在同一个 NSPanel 内切换 `quick`（仅结果）与 `workspace`（左右对照）；窗口尺寸分别记忆，设置页仍与工作窗互斥。`returnAction` 是键盘派发与绿色按钮样式的共同来源。调整框焦点优先于替换，空指令不能回退到替换；原生编辑控件自行处理 IME 与 Shift+Return。
+
+`ShortcutSequenceGate` 只暂存配置的非复制序列前缀，在匹配时丢弃原事件并触发动作，超时、失配、鼠标点击、切换应用或监听暂停时归还原事件至原进程。回放带内部标记防止再次匹配，不记录输入文本。Command+C 开头的自定义序列保持透传。非复制序列需辅助功能与输入监控权限。快捷键 ID 与 v2 存储保留，`TrueL.shortcuts.quickDefaults.v1` 标记一次性默认值迁移，自定义与禁用不被复原。

@@ -2,8 +2,8 @@ import AppKit
 import Carbon.HIToolbox
 import Observation
 
-/// Carbon handles ordinary chords without a permission. A listen-only event tap
-/// recognizes sequences without consuming either copy event in ⌘C, C.
+/// Carbon handles ordinary chords. The event tap preserves native copy sequences
+/// and holds other configured prefixes so they cannot destroy a selection.
 @MainActor
 final class GlobalShortcutMonitor {
     let store: ShortcutStore
@@ -27,6 +27,11 @@ final class GlobalShortcutMonitor {
     private var lastBindings: [ShortcutAction: ShortcutBinding]?
     private var lastPaused: Bool?
     private var lastPermission: Bool?
+    private var lastAccessibility: Bool?
+    private var gate = ShortcutSequenceGate<CGEvent>(bindings: [:])
+    private var sequenceTimer: Timer?
+    private var tapCanSuppress = false
+    private static let replayMarker: Int64 = 0x5452554c534551
     private var matcher = ShortcutSequenceMatcher(bindings: [:])
     private var sequenceClipboardChangeCount: Int?
     private static let signature: OSType = 0x5452554c
@@ -84,6 +89,7 @@ final class GlobalShortcutMonitor {
         lastBindings = nil
         lastPaused = nil
         lastPermission = nil
+        lastAccessibility = nil
         store.status = "快捷键已停止"
     }
 
@@ -93,6 +99,7 @@ final class GlobalShortcutMonitor {
             _ = store.bindings
             _ = store.isRecording
             _ = permissions.inputMonitoringGranted
+            _ = permissions.accessibilityGranted
         } onChange: { [weak self] in
             Task { @MainActor in
                 guard let self, self.running else { return }
@@ -108,12 +115,19 @@ final class GlobalShortcutMonitor {
         let bindings = store.bindings
         let paused = store.isRecording || isPaused()
         let granted = permissions.inputMonitoringGranted
-        guard bindings != lastBindings || paused != lastPaused || granted != lastPermission else { return }
+        let accessibility = permissions.accessibilityGranted
+        guard bindings != lastBindings || paused != lastPaused || granted != lastPermission
+                || accessibility != lastAccessibility else { return }
+        resetSequence()
+        if accessibility != lastAccessibility { stopEventTap() }
+        lastAccessibility = accessibility
         lastBindings = bindings
         lastPaused = paused
         lastPermission = granted
         unregisterHotKeys()
-        matcher = ShortcutSequenceMatcher(bindings: bindings.filter { $0.value.needsInputMonitoring })
+        let observed = bindings.filter { $0.value.needsInputMonitoring }
+        matcher = ShortcutSequenceMatcher(bindings: observed.filter { $0.value.startsWithNativeCopy })
+        gate = ShortcutSequenceGate(bindings: observed)
         sequenceClipboardChangeCount = nil
         clipboardChangedDuringSequence = false
         store.registrationErrors = [:]
@@ -144,6 +158,11 @@ final class GlobalShortcutMonitor {
             for action in sequences.keys { store.registrationErrors[action] = "需要在系统设置中允许输入监控。" }
         } else if !startEventTapIfNeeded() {
             for action in sequences.keys { store.registrationErrors[action] = "输入监听未能启动，请检查权限后重新启动 TrueL。" }
+        }
+        if !accessibility {
+            for (action, binding) in sequences where !binding.startsWithNativeCopy {
+                store.registrationErrors[action] = "需要辅助功能权限以保留原选区。"
+            }
         }
         if bindings.isEmpty { store.status = "未设置全局快捷键" }
         else if store.registrationErrors.isEmpty { store.status = "全局快捷键已启用" }
@@ -192,16 +211,17 @@ final class GlobalShortcutMonitor {
     @discardableResult
     private func startEventTapIfNeeded() -> Bool {
         if eventTap != nil { return true }
-        let mask = CGEventMask(1 << CGEventType.keyDown.rawValue)
-        guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .tailAppendEventTap,
-            options: .listenOnly, eventsOfInterest: mask, callback: { _, type, event, context in
+        tapCanSuppress = permissions.accessibilityGranted
+        let mask = [CGEventType.keyDown, .keyUp, .leftMouseDown, .rightMouseDown, .otherMouseDown]
+            .reduce(CGEventMask(0)) { $0 | (1 << $1.rawValue) }
+        guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap,
+            options: tapCanSuppress ? .defaultTap : .listenOnly, eventsOfInterest: mask, callback: { _, type, event, context in
                 guard let context else { return Unmanaged.passUnretained(event) }
-                MainActor.assumeIsolated {
+                let consumed = MainActor.assumeIsolated {
                     let monitor = Unmanaged<GlobalShortcutMonitor>.fromOpaque(context).takeUnretainedValue()
-                    monitor.receiveEvent(type: type, event: event)
+                    return monitor.receiveEvent(type: type, event: event)
                 }
-                // Listen-only also enforces this in the OS: copy/typing is never swallowed.
-                return Unmanaged.passUnretained(event)
+                return consumed ? nil : Unmanaged.passUnretained(event)
             }, userInfo: Unmanaged.passUnretained(self).toOpaque()) else { return false }
         guard let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0) else {
             CFMachPortInvalidate(tap)
@@ -214,24 +234,34 @@ final class GlobalShortcutMonitor {
         return true
     }
 
-    private func receiveEvent(type: CGEventType, event: CGEvent) {
+    private func receiveEvent(type: CGEventType, event: CGEvent) -> Bool {
+        if event.getIntegerValueField(.eventSourceUserData) == Self.replayMarker { return false }
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             resetSequence()
             if let eventTap, permissions.inputMonitoringGranted { CGEvent.tapEnable(tap: eventTap, enable: true) }
-            return
+            return false
         }
-        guard running, type == .keyDown, !store.isRecording, !isPaused() else {
+        guard running, !store.isRecording, !isPaused(),
+              let sourcePID = NSWorkspace.shared.frontmostApplication?.processIdentifier else {
             resetSequence()
-            return
+            return false
         }
-        guard event.getIntegerValueField(.keyboardEventAutorepeat) == 0 else { return }
-        guard let sourcePID = NSWorkspace.shared.frontmostApplication?.processIdentifier else {
-            resetSequence()
-            return
-        }
+        guard type == .keyDown || type == .keyUp else { resetSequence(); return false }
         let stroke = ShortcutStroke(keyCode: UInt16(event.getIntegerValueField(.keyboardEventKeycode)),
             modifiers: ShortcutModifiers(NSEvent.ModifierFlags(rawValue: UInt(event.flags.rawValue))))
         let timestamp = Double(event.timestamp) / 1_000_000_000
+        let repeated = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
+        if tapCanSuppress, let copy = event.copy() {
+            let decision = gate.process(copy, stroke: stroke, down: type == .keyDown, isRepeat: repeated,
+                                        timestamp: timestamp, sourcePID: sourcePID)
+            replay(decision.replay)
+            if let action = decision.action { trigger(action, sourcePID: sourcePID, clipboardChanged: false) }
+            if gate.isPending {
+                if type == .keyDown && !repeated { armSequenceTimeout() }
+            } else { sequenceTimer?.invalidate(); sequenceTimer = nil }
+            if decision.consumed { return true }
+        }
+        guard type == .keyDown, !repeated else { return false }
         matcher.prepareForEvent(at: timestamp, sourcePID: sourcePID)
         if !matcher.isInProgress(for: .selectionTranslation) {
             let selectionBinding = store.bindings[.selectionTranslation]
@@ -241,21 +271,41 @@ final class GlobalShortcutMonitor {
         if let action = matcher.process(stroke, timestamp: timestamp, sourcePID: sourcePID) {
             let changed = action == .selectionTranslation && sequenceClipboardChangeCount.map { $0 != NSPasteboard.general.changeCount } == true
             sequenceClipboardChangeCount = nil
-            // Leave the tap callback promptly. Capture the source app in the action
-            // handler before presenting any TrueL window.
-            Task { @MainActor [weak self] in
-                guard let self, self.running, !self.store.isRecording, !self.isPaused(),
-                      NSWorkspace.shared.frontmostApplication?.processIdentifier == sourcePID else { return }
-                self.clipboardChangedDuringSequence = changed
-                self.onTrigger(action)
-                self.clipboardChangedDuringSequence = false
-            }
-        } else if !matcher.isInProgress(for: .selectionTranslation) {
-            sequenceClipboardChangeCount = nil
+            trigger(action, sourcePID: sourcePID, clipboardChanged: changed)
+        } else if !matcher.isInProgress(for: .selectionTranslation) { sequenceClipboardChangeCount = nil }
+        return false
+    }
+
+    private func trigger(_ action: ShortcutAction, sourcePID: pid_t, clipboardChanged: Bool) {
+        Task { @MainActor [weak self] in
+            guard let self, self.running, !self.store.isRecording, !self.isPaused(),
+                  NSWorkspace.shared.frontmostApplication?.processIdentifier == sourcePID else { return }
+            self.clipboardChangedDuringSequence = clipboardChanged
+            self.onTrigger(action)
+            self.clipboardChangedDuringSequence = false
+        }
+    }
+
+    private func armSequenceTimeout() {
+        sequenceTimer?.invalidate()
+        let timer = Timer(timeInterval: ShortcutBinding.sequenceTimeout, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.resetSequence() }
+        }
+        sequenceTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    private func replay(_ events: [(pid_t, CGEvent)]) {
+        for (pid, event) in events {
+            event.setIntegerValueField(.eventSourceUserData, value: Self.replayMarker)
+            event.postToPid(pid)
         }
     }
 
     private func resetSequence() {
+        sequenceTimer?.invalidate()
+        sequenceTimer = nil
+        replay(gate.flush())
         matcher.reset()
         sequenceClipboardChangeCount = nil
         clipboardChangedDuringSequence = false

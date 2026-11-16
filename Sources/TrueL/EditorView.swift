@@ -6,6 +6,7 @@ struct PanelEditor: NSViewRepresentable {
     @Binding var text: String
     var onSubmit: () -> Void
     var onCancel: () -> Void
+    var onFocusChange: (Bool) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -40,6 +41,7 @@ struct PanelEditor: NSViewRepresentable {
         editor.delegate = context.coordinator
         editor.onSubmit = onSubmit
         editor.onCancel = onCancel
+        editor.onFocusChange = onFocusChange
         editor.setAccessibilityLabel("原文")
         scroll.documentView = editor
         return scroll
@@ -50,6 +52,7 @@ struct PanelEditor: NSViewRepresentable {
         guard let editor = scroll.documentView as? PanelTextView else { return }
         editor.onSubmit = onSubmit
         editor.onCancel = onCancel
+        editor.onFocusChange = onFocusChange
         if editor.string != text {
             let selection = editor.selectedRange()
             editor.string = text
@@ -71,6 +74,17 @@ struct PanelEditor: NSViewRepresentable {
 final class PanelTextView: NSTextView {
     var onSubmit: (() -> Void)?
     var onCancel: (() -> Void)?
+    var onFocusChange: ((Bool) -> Void)?
+    override func becomeFirstResponder() -> Bool {
+        let accepted = super.becomeFirstResponder()
+        if accepted { onFocusChange?(true) }
+        return accepted
+    }
+    override func resignFirstResponder() -> Bool {
+        let accepted = super.resignFirstResponder()
+        if accepted { onFocusChange?(false) }
+        return accepted
+    }
     func applyBodyStyle() {
         let paragraph = BodyTextStyle.paragraph
         textStorage?.addAttribute(.paragraphStyle, value: paragraph,

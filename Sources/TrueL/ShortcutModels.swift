@@ -11,8 +11,8 @@ enum ShortcutAction: String, CaseIterable, Codable, Identifiable, Sendable {
         case .clipboardTranslation: "翻译剪贴板"
         case .translation: "打开翻译"
         case .grammar: "打开改写"
-        case .selectionTranslation: "翻译选中文字"
-        case .selectionGrammar: "改写选中文字"
+        case .selectionTranslation: "快速翻译"
+        case .selectionGrammar: "快速改写"
         }
     }
 }
@@ -87,12 +87,12 @@ struct ShortcutBinding: Codable, Equatable, Sendable {
     static var defaults: [ShortcutAction: Self] {
         [
             .selectionTranslation: .init(strokes: [
-                .init(keyCode: 8, modifiers: .command), .init(keyCode: 8, modifiers: .command)
+                .init(keyCode: 8, modifiers: .control), .init(keyCode: 8, modifiers: .control)
             ]),
             .clipboardTranslation: .init(strokes: [.init(keyCode: 18, modifiers: [.control, .option, .command])]),
             .translation: .init(strokes: [.init(keyCode: 19, modifiers: [.control, .option, .command])]),
             .grammar: .init(strokes: [.init(keyCode: 20, modifiers: [.control, .option, .command])]),
-            .selectionGrammar: .init(strokes: [.init(keyCode: 5, modifiers: [.control, .option, .command])])
+            .selectionGrammar: .init(strokes: [.init(keyCode: 0, modifiers: .control), .init(keyCode: 0, modifiers: .control)])
         ]
     }
 }
@@ -114,6 +114,13 @@ struct ShortcutSequenceMatcher {
     }
 
     func isInProgress(for action: ShortcutAction) -> Bool { progress[action] != nil }
+    var isInProgress: Bool { !progress.isEmpty }
+    func acceptsContinuation(_ stroke: ShortcutStroke) -> Bool {
+        progress.contains { action, index in
+            guard let steps = bindings[action]?.strokes, index < steps.count else { return false }
+            return steps[index] == stroke
+        }
+    }
 
     mutating func expireProgress(at timestamp: TimeInterval) {
         if let lastTimestamp, timestamp < lastTimestamp || timestamp - lastTimestamp > timeout { reset() }

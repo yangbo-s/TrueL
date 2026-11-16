@@ -4,8 +4,8 @@ import Testing
 
 @MainActor
 extension UnifiedPopupTests {
-    @Test(arguments: WorkMode.allCases, [CGFloat(464), CGFloat(760)])
-    func popupSharesSourceTypographyAndScrollColumn(mode: WorkMode, width: CGFloat) async throws {
+    @Test(arguments: WorkMode.allCases, [CGFloat(736), CGFloat(960)])
+    func popupAlignsSideBySideTypographyAndScrollColumns(mode: WorkMode, width: CGFloat) async throws {
         _ = NSApplication.shared
         let subject = AppDelegate(preview: true)
         subject.snapshotRunning = true
@@ -28,8 +28,11 @@ extension UnifiedPopupTests {
         let resultScroll = try #require(views.compactMap { $0 as? NSScrollView }.first { $0 !== sourceScroll })
         let sourceFrame = sourceScroll.convert(sourceScroll.bounds, to: root)
         let resultFrame = resultScroll.convert(resultScroll.bounds, to: root)
-        #expect(abs(sourceFrame.minX - resultFrame.minX) <= 0.5)
-        #expect(abs(sourceFrame.maxX - resultFrame.maxX) <= 0.5)
+        let stride = resultFrame.minX - sourceFrame.minX
+        #expect(stride > 300)
+        #expect(abs(sourceFrame.width - resultFrame.width) <= 0.5)
+        #expect(abs(sourceFrame.minY - resultFrame.minY) <= 0.5)
+        #expect(abs(sourceFrame.maxY - resultFrame.maxY) <= 0.5)
         #expect(sourceScroll.scrollerStyle == resultScroll.scrollerStyle)
         for style in [sourceScroll.scrollerStyle, .overlay, .legacy] {
             sourceScroll.scrollerStyle = style
@@ -40,7 +43,7 @@ extension UnifiedPopupTests {
             let resultScroller = try #require(resultScroll.verticalScroller)
             let sourceRight = sourceScroller.convert(sourceScroller.bounds, to: root).maxX
             let resultRight = resultScroller.convert(resultScroller.bounds, to: root).maxX
-            #expect(abs(sourceRight - resultRight) <= 0.5)
+            #expect(abs(sourceRight + stride - resultRight) <= 0.5)
             let lastCharacter = NSRange(location: (editor.string as NSString).length - 1, length: 1)
             let container = try #require(editor.textContainer)
             let layout = try #require(editor.layoutManager)
@@ -63,9 +66,35 @@ extension UnifiedPopupTests {
                     #expect(sourceParagraph.lineSpacing == resultParagraph.lineSpacing)
                     let sourceTextX = editor.convert(editor.textContainerOrigin, to: root).x
                     let resultTextX = result.convert(result.textContainerOrigin, to: root).x
-                    #expect(abs(sourceTextX - resultTextX) <= 0.5)
+                    #expect(abs(sourceTextX + stride - resultTextX) <= 0.5)
                 }
             }
+        }
+    }
+
+    @Test(arguments: [PopupPresentation.workspace, .quick])
+    func translationRemainsReadableWhenFocusMovesToAdjustment(presentation: PopupPresentation) async throws {
+        let subject = AppDelegate(preview: true)
+        subject.snapshotRunning = true
+        subject.setPresentation(presentation)
+        subject.model.mode = .translation
+        subject.model.input = "Haha, enjoy~\n\nYou not the last one."
+        subject.showPanel()
+        subject.model.showPreviewResult()
+        let panel = try #require(subject.panel)
+        defer { subject.model.cancel(); panel.delegate = nil; panel.close(); panel.contentView = nil }
+        try await Task.sleep(for: .milliseconds(150))
+        for focused in [true, false, true] {
+            subject.session.focus = focused ? .followUp : .result
+            subject.model.followUp = focused ? "更自然一些" : ""
+            try await Task.sleep(for: .milliseconds(100))
+            let root = try #require(panel.contentView)
+            let text = try #require(descendantViews(root).compactMap { $0 as? NSTextView }
+                .first { !$0.isEditable && !$0.string.isEmpty })
+            let container = try #require(text.textContainer)
+            #expect(text.bounds.width > 200)
+            #expect(abs(container.containerSize.width - text.bounds.width) <= 1)
+            #expect(container.containerSize.width > 200)
         }
     }
 

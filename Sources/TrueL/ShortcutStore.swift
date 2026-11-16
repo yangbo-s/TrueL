@@ -21,6 +21,7 @@ final class ShortcutStore {
     @ObservationIgnored private var recordingSourcePID: Int64?
     private static let storageKey = "TrueL.shortcuts.v2"
     private static let legacyStorageKey = "TrueL.shortcuts.v1"
+    private static let quickDefaultsKey = "TrueL.shortcuts.quickDefaults.v1"
 
     init(persist: Bool = true, defaults: UserDefaults = .standard, captureKeyboardEvents: Bool = true) {
         self.persist = persist
@@ -35,6 +36,19 @@ final class ShortcutStore {
             // from being resurrected by migration on the next launch.
             if legacyData != nil { save() }
         } else { bindings = ShortcutBinding.defaults }
+        if persist && !defaults.bool(forKey: Self.quickDefaultsKey) {
+            let previous: [ShortcutAction: ShortcutBinding] = [
+                .selectionTranslation: .init(strokes: [.init(keyCode: 8, modifiers: .command), .init(keyCode: 8, modifiers: .command)]),
+                .selectionGrammar: .init(strokes: [.init(keyCode: 5, modifiers: [.control, .option, .command])])
+            ]
+            for action in [ShortcutAction.selectionTranslation, .selectionGrammar] {
+                guard currentData != nil, bindings[action] == previous[action], let replacement = ShortcutBinding.defaults[action],
+                      validationError(for: replacement, replacing: action) == nil else { continue }
+                bindings[action] = replacement
+            }
+            save()
+            defaults.set(true, forKey: Self.quickDefaultsKey)
+        }
     }
 
     private static func restoredBindings(_ stored: [String: ShortcutBinding], migratingLegacy: Bool)

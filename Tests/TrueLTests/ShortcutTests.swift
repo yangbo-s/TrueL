@@ -10,8 +10,9 @@ struct ShortcutTests {
 
     @Test func defaultGlobalChordsLeaveCommonBrowserTabShortcutsAvailable() {
         let defaults = ShortcutBinding.defaults
-        #expect(defaults[.selectionTranslation]?.strokes == [stroke(8), stroke(8)])
-        for action in ShortcutAction.allCases where action != .selectionTranslation {
+        #expect(defaults[.selectionTranslation]?.strokes == [stroke(8, .control), stroke(8, .control)])
+        #expect(defaults[.selectionGrammar]?.strokes == [stroke(0, .control), stroke(0, .control)])
+        for action in [ShortcutAction.translation, .grammar, .clipboardTranslation] {
             #expect(defaults[action]?.strokes.first?.modifiers == [.control, .option, .command])
         }
         // Defaults avoid common chords, but an intentional user choice remains supported.
@@ -20,7 +21,7 @@ struct ShortcutTests {
     }
 
     @Test func customNonCopySequencesCannotEnableClipboardFallback() {
-        #expect(ShortcutBinding.defaults[.selectionTranslation]?.startsWithNativeCopy == true)
+        #expect(ShortcutBinding.defaults[.selectionTranslation]?.startsWithNativeCopy == false)
         #expect(!ShortcutBinding(strokes: [stroke(18, .control), stroke(19, .control)]).startsWithNativeCopy)
         #expect(!ShortcutBinding(strokes: [stroke(8, .control), stroke(8, .control)]).startsWithNativeCopy)
         #expect(!ShortcutBinding(strokes: [stroke(8, [.command, .shift]), stroke(8, [.command, .shift])]).startsWithNativeCopy)
@@ -80,11 +81,11 @@ struct ShortcutTests {
     @Test func shorterAndLongerPrefixesAreRejectedWithoutOverwritingBindings() {
         let store = ShortcutStore(persist: false, captureKeyboardEvents: false)
         let original = store.bindings[.grammar]
-        #expect(!store.setBinding(.init(strokes: [stroke(8)]), for: .grammar))
+        #expect(!store.setBinding(.init(strokes: [stroke(8, .control)]), for: .grammar))
         #expect(store.bindings[.grammar] == original)
         #expect(store.recordingError?.contains("前缀") == true)
-        #expect(!store.setBinding(.init(strokes: [stroke(8), stroke(8), stroke(8)]), for: .grammar))
-        #expect(!store.setBinding(.init(strokes: [stroke(8), stroke(8)]), for: .grammar))
+        #expect(!store.setBinding(.init(strokes: [stroke(8, .control), stroke(8, .control), stroke(8, .control)]), for: .grammar))
+        #expect(!store.setBinding(.init(strokes: [stroke(8, .control), stroke(8, .control)]), for: .grammar))
     }
 
     @Test func recorderRetainsExactModifiersAndDoesNotSaveUntilCommitted() {
@@ -234,6 +235,37 @@ struct ShortcutTests {
             let store = ShortcutStore(defaults: defaults, captureKeyboardEvents: false)
             #expect(store.bindings == [.selectionTranslation: binding])
         }
+    }
+
+    @Test func quickDefaultsMigrateOnceWithoutOverwritingCustomOrDisabledBindings() throws {
+        let suite = "TrueL.QuickDefaults.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let oldCopy = ShortcutBinding(strokes: [stroke(8), stroke(8)])
+        let oldGrammar = ShortcutBinding(strokes: [stroke(5, [.control, .option, .command])])
+        defaults.set(try JSONEncoder().encode(["selectionTranslation": oldCopy, "selectionGrammar": oldGrammar]),
+                     forKey: "TrueL.shortcuts.v2")
+        let migrated = ShortcutStore(defaults: defaults, captureKeyboardEvents: false)
+        #expect(migrated.bindings[.selectionTranslation] == ShortcutBinding.defaults[.selectionTranslation])
+        #expect(migrated.bindings[.selectionGrammar] == ShortcutBinding.defaults[.selectionGrammar])
+        #expect(migrated.setBinding(oldCopy, for: .selectionTranslation))
+        migrated.clearBinding(for: .selectionGrammar)
+        let relaunched = ShortcutStore(defaults: defaults, captureKeyboardEvents: false)
+        #expect(relaunched.bindings == [.selectionTranslation: oldCopy])
+    }
+
+    @Test func defaultMigrationKeepsCustomPrefixConflictsAndDisabledQuickActions() throws {
+        let suite = "TrueL.QuickDefaults.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let custom = ShortcutBinding(strokes: [stroke(0, .control)])
+        let oldGrammar = ShortcutBinding(strokes: [stroke(5, [.control, .option, .command])])
+        defaults.set(try JSONEncoder().encode(["grammar": custom, "selectionGrammar": oldGrammar]),
+                     forKey: "TrueL.shortcuts.v2")
+        let store = ShortcutStore(defaults: defaults, captureKeyboardEvents: false)
+        #expect(store.bindings[.grammar] == custom)
+        #expect(store.bindings[.selectionGrammar] == oldGrammar)
+        #expect(store.bindings[.selectionTranslation] == nil)
     }
 
     @Test func permissionPreviewDoesNotBecomeGrantedAfterRefresh() {

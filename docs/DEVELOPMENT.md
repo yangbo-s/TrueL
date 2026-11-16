@@ -54,6 +54,10 @@ python3 tools/check-layout.py artifacts/screenshots
 
 正文与滚动对齐可定向运行 `APP_SNAPSHOT_SCOPE=alignment ./tools/snap.sh`，再执行 `python3 tools/check-layout.py artifacts/screenshots --alignment`。该矩阵覆盖两种任务、窄宽窗口、浅深外观与长文本的顶部/中部/底部；直接运行应用并传入 `-AppleShowScrollBars WhenScrolling` 可补查自动隐藏滚动条。`PopupAlignmentTests` 在真实窗口中校验正文属性、滚动区域坐标及末字符可见性。
 
+快速工作流的结果、调整焦点、只读、错误及左右对照：`APP_SNAPSHOT_SCOPE=workflows ./tools/snap.sh`，随后运行 `python3 tools/check-layout.py artifacts/screenshots --workflows`。绿色主动作与 Return 意图记录在截图元数据中；原生调整框的回车行为由 `QuickWorkflowTests` 验证。
+
+已具备辅助功能和输入监控权限的开发终端可运行 `./tools/check-quick-workflows.sh`。它编译并启动独立测试窗口，真实发送 Ctrl+A+A / Ctrl+C+C，验证结果窗激活后的 AX 替换、超时归还按键、选区变化、来源关闭与只读拒写。仅操作自建窗口，完成后关闭，不读取用户文档和 Key。
+
 图标母版保存在 `design/logo-refinements/native`，默认原生图标为 `Icon/AppIcon.icon`。`build.sh` 调用 `python3 tools/make-icons.py`，按内容哈希缓存编译产物。`Resources` 中保留可审查的资源，`python3 tools/make-icons.py --check` 验证是否与母版一致。
 
 逐款切换验收可运行 `APP_SNAPSHOT_SCOPE=icons ./tools/snap.sh`，再执行 `python3 tools/check-layout.py artifacts/screenshots --icons`。

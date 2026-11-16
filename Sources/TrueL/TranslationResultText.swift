@@ -5,17 +5,9 @@ import SwiftUI
 struct TranslationResultText: View {
     let text: String
 
-    private var paragraphs: [String] {
-        text.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: "\n\n")
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ForEach(Array(paragraphs.enumerated()), id: \.offset) { _, paragraph in
-                SelectableTranslationParagraph(text: paragraph)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        SelectableTranslationParagraph(text: text.replacingOccurrences(of: "\r\n", with: "\n"))
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -27,6 +19,7 @@ private struct SelectableTranslationParagraph: NSViewRepresentable {
         let layout = NSLayoutManager()
         let container = NSTextContainer(size: CGSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
         container.lineFragmentPadding = 0
+        container.widthTracksTextView = true
         storage.addLayoutManager(layout)
         layout.addTextContainer(container)
         let view = TranslationTextView(frame: .zero, textContainer: container)
@@ -49,8 +42,14 @@ private struct SelectableTranslationParagraph: NSViewRepresentable {
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: TranslationTextView, context: Context) -> CGSize? {
         let width = max(1, proposal.width ?? 400)
-        guard let container = nsView.textContainer, let layout = nsView.layoutManager else { return nil }
-        container.containerSize = CGSize(width: width, height: CGFloat.greatestFiniteMagnitude)
+        // SwiftUI probes multiple widths (including zero) while changing focus.
+        // Measuring the live container leaves its last probe width on screen.
+        let storage = NSTextStorage(attributedString: nsView.attributedString())
+        let layout = NSLayoutManager()
+        let container = NSTextContainer(size: CGSize(width: width, height: CGFloat.greatestFiniteMagnitude))
+        container.lineFragmentPadding = 0
+        storage.addLayoutManager(layout)
+        layout.addTextContainer(container)
         layout.ensureLayout(for: container)
         let used = layout.usedRect(for: container)
         var height = used.height

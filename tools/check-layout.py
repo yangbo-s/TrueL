@@ -21,12 +21,29 @@ if '--alignment' in sys.argv[2:]:
                 for mode in ('grammar', 'translation')
                 for size, positions in [('compact', ('top', 'middle', 'bottom')), ('wide', ('top',))]
                 for position in positions}
+if '--workflows' in sys.argv[2:]:
+    surfaces = {f'quick-{mode}-{state}' for mode in ('grammar', 'translation')
+                for state in ('loading', 'result', 'refine', 'readonly')}
+    surfaces |= {f'workspace-{mode}-{state}' for mode in ('grammar', 'translation') for state in ('result', 'refine')}
+    surfaces |= {'quick-empty', 'quick-error'}
 expected = {f'{surface}-{appearance}' for surface in surfaces for appearance in ('light', 'dark')}
 assert len(records) == len(expected), 'Expected both appearances of every result and settings surface'
 assert {record['name'] for record in records} == expected, 'Missing or duplicate capture states'
 panel_ids = {record['windowNumber'] for record in records if not record['name'].startswith('settings-')}
 assert len(panel_ids) == (0 if any(flag in sys.argv[2:] for flag in ('--about', '--icons')) else 1), 'Translation and grammar must share one actual window'
 for record in records:
+    if '--workflows' in sys.argv[2:]:
+        quick = record['name'].startswith('quick-')
+        assert record['presentation'] == ('quick' if quick else 'workspace')
+        assert record['scrollCount'] == ('1' if quick else '2'), f'{record["name"]}: unexpected scroll/editor count'
+        if '-loading-' in record['name']:
+            assert record['isProcessing'] == 'true' and record['returnAction'] == 'none', 'Loading fixture was cancelled'
+        if record['name'].startswith('quick-error-'):
+            assert record['canSubmit'] == 'true' and record['hasResult'] == 'false', 'Error fixture must retain source for retry'
+        if '-refine-' in record['name']:
+            assert record['returnAction'] == 'refine' and record['focus'] == 'followUp'
+        elif quick and any(f'-{state}-' in record['name'] for state in ('result', 'readonly')):
+            assert record['returnAction'] == 'replace' and record['focus'] == 'result'
     if '--alignment' in sys.argv[2:]:
         styles = record['scrollStyles'].split(',')
         assert len(styles) == 2 and styles[0] == styles[1], f'{record["name"]}: inconsistent native scrollers'

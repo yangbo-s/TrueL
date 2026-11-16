@@ -4,6 +4,7 @@ import SwiftUI
 struct TaskModelMenu: NSViewRepresentable {
     @Bindable var service: ServiceConfiguration
     var mode: WorkMode
+    var maximumWidth: CGFloat = 220
     var onSettings: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -11,7 +12,7 @@ struct TaskModelMenu: NSViewRepresentable {
         service.selection(for: mode)?.modelID ?? (service.availableSelections.isEmpty ? "配置 AI 服务" : "选择模型")
     }
     private var width: CGFloat {
-        min(220, ceil((title as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: TypeScale.control)]).width) + 28)
+        min(maximumWidth, ceil((title as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: TypeScale.control)]).width) + 28)
     }
     func makeNSView(context: Context) -> SettingsMenuButton {
         SettingsMenuButton(frame: NSRect(x: 0, y: 0, width: width, height: SurfaceMetrics.controlHeight))

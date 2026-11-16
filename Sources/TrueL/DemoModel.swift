@@ -197,6 +197,11 @@ final class DemoModel {
         tip = result.tip
     }
 
+    func showPreviewError(_ message: String) {
+        invalidateAndClear()
+        errorMessage = message
+    }
+
     private func invalidateAndClear() {
         generation = UUID()
         work?.cancel()

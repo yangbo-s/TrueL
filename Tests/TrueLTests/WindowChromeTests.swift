@@ -40,7 +40,7 @@ extension UnifiedPopupTests {
         }
         subject.windowWillStartLiveResize(Notification(name: NSWindow.willStartLiveResizeNotification, object: panel))
         var frame = panel.frame
-        frame.size = NSSize(width: 680, height: 480)
+        frame.size = NSSize(width: 880, height: 560)
         panel.setFrame(frame, display: true)
         // A content update during the drag must not undo the user's frame.
         subject.resize(height: 600, minimumHeight: PopupLayout.baseHeight)
@@ -53,7 +53,7 @@ extension UnifiedPopupTests {
         #expect(subject.panel === panel)
         #expect(panel.frame.size == frame.size)
         subject.resize(height: 600, minimumHeight: 520)
-        #expect(panel.frame.width == 680)
+        #expect(panel.frame.width == 880)
         #expect(panel.frame.height >= 520)
     }
 

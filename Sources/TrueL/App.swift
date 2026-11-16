@@ -19,6 +19,18 @@ struct TrueLApplication {
 final class FloatingPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
+    var onReturn: (() -> Void)?
+    override func sendEvent(_ event: NSEvent) {
+        // Editable views keep native IME / field-editor submission. Read-only
+        // result text views otherwise swallow Return before the window sees it.
+        if event.type == .keyDown, [36, 76].contains(event.keyCode),
+           event.modifierFlags.intersection([.shift, .control, .option, .command]).isEmpty,
+           (firstResponder as? NSTextView)?.isEditable != true {
+            if !event.isARepeat { onReturn?() }
+            return
+        }
+        super.sendEvent(event)
+    }
 }
 
 @MainActor
@@ -32,6 +44,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let permissions: SystemPermissions
     let selectionBridge = SelectionBridge()
     let selectionContext: SelectionReplacementContext
+    let session = PopupSession()
+    private var presentationSizes: [PopupPresentation: NSSize] = [:]
+    private var presentationUserHeights: [PopupPresentation: CGFloat] = [:]
     private var isTerminating = false
     private var shortcutMonitor: GlobalShortcutMonitor?
     private var panelDismissal: Task<Void, Never>?
@@ -63,8 +78,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     var panel: FloatingPanel!
     var settings: NSWindow?
-    var desiredHeight: CGFloat = PopupLayout.baseHeight
-    private var minimumPanelHeight: CGFloat = PopupLayout.baseHeight
+    var desiredHeight: CGFloat = PopupPresentation.workspace.initialSize.height
+    private var minimumPanelHeight: CGFloat = PopupPresentation.workspace.minimumHeight
     // The isolated snapshot runner restores this after exercising a user resize.
     var userPanelHeight: CGFloat?
     private var panelLiveResizeStart: NSSize?
@@ -100,7 +115,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         shortcuts.cancelRecording()
         settings?.orderOut(nil)
         if panel == nil {
-            panel = FloatingPanel(contentRect: NSRect(x: 0, y: 0, width: PopupLayout.compactWidth, height: desiredHeight),
+            panel = FloatingPanel(contentRect: NSRect(origin: .zero, size: session.presentation.initialSize),
                                   styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                                   backing: .buffered, defer: false)
             panel.title = "TrueL"
@@ -116,12 +131,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             panel.isOpaque = false
             panel.hasShadow = true
             panel.isMovableByWindowBackground = true
-            panel.minSize = NSSize(width: PopupLayout.compactWidth, height: PopupLayout.baseHeight)
+            panel.minSize = NSSize(width: session.presentation.minimumWidth, height: minimumPanelHeight)
+            panel.onReturn = { [weak self] in self?.performReturnAction() }
             panel.collectionBehavior = [.fullScreenAuxiliary]
             let content = PopupView(model: model, preferences: preferences, service: service,
-                selectionContext: selectionContext,
+                selectionContext: selectionContext, session: session,
                 onTranslateClipboard: { [weak self] in self?.translateClipboard() },
                 onReplaceSelection: { [weak self] in self?.replaceSelection() },
+                onRefine: { [weak self] in self?.refineResult() },
                 onLanguageChange: { [weak self] in self?.changeTranslationLanguage() },
                 onSettings: { [weak self] in self?.openSettings() },
                 onPin: { [weak self] value in self?.preferences.alwaysOnTop = value },
@@ -140,6 +157,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         alignTrafficLights(in: panel)
         NSApp.activate(ignoringOtherApps: true)
         panel.makeFirstResponder(nil)
+        session.focus = .result
     }
 
     @objc func openSettings() { showSettings(page: .service) }
@@ -279,11 +297,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard let panel else { return }
         if let minimumHeight {
             minimumPanelHeight = max(PopupLayout.baseHeight, minimumHeight)
-            panel.minSize = NSSize(width: PopupLayout.compactWidth, height: minimumPanelHeight)
+            panel.minSize = NSSize(width: session.presentation.minimumWidth, height: minimumPanelHeight)
         }
         guard !panel.inLiveResize, panelLiveResizeStart == nil else { return }
         let screen = panel.screen?.visibleFrame ?? NSScreen.main!.visibleFrame
-        let width = min(max(PopupLayout.compactWidth, panel.frame.width), screen.width - 16)
+        let width = min(max(session.presentation.minimumWidth, panel.frame.width), screen.width - 16)
         let targetHeight = min(ceil(max(minimumPanelHeight, userPanelHeight ?? desiredHeight)), screen.height - 16)
         let old = panel.frame
         let x = min(max(old.midX - width / 2, screen.minX + 8), screen.maxX - width - 8)
@@ -368,7 +386,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     /// Every external source replaces the same editor and cancels its previous request,
     /// even if a repeated shortcut captures exactly the same text.
-    func beginInput(_ text: String, mode: WorkMode, canReplaceSelection: Bool = false) {
+    func beginInput(_ text: String, mode: WorkMode, canReplaceSelection: Bool = false,
+                    presentation: PopupPresentation = .workspace) {
+        setPresentation(presentation)
         model.reset()
         selectionContext.clear()
         model.mode = mode
@@ -376,7 +396,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         model.input = text
         selectionContext.bind(canReplace: canReplaceSelection)
         if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            model.reportInputError("没有可处理的文字。请先选择或复制文字，也可以直接在此输入。")
+            model.reportInputError(presentation == .quick ? "没有读取到选中文字。请选中文字后重试。"
+                : "没有可处理的文字。请先选择或复制文字，也可以直接在此输入。")
         } else {
             model.submit()
         }
@@ -400,18 +421,60 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
+    func setPresentation(_ presentation: PopupPresentation) {
+        guard session.presentation != presentation else { return }
+        if let panel {
+            presentationSizes[session.presentation] = panel.frame.size
+            presentationUserHeights[session.presentation] = userPanelHeight
+        }
+        session.presentation = presentation
+        session.focus = .result
+        let size = presentationSizes[presentation] ?? presentation.initialSize
+        desiredHeight = size.height
+        userPanelHeight = presentationUserHeights[presentation]
+        minimumPanelHeight = presentation.minimumHeight
+        if let panel {
+            panel.makeFirstResponder(nil)
+            panel.minSize = NSSize(width: presentation.minimumWidth, height: minimumPanelHeight)
+            let old = panel.frame
+            panel.setFrame(NSRect(x: old.midX - size.width / 2, y: old.maxY - size.height,
+                                  width: size.width, height: size.height), display: true)
+        }
+    }
+
+    func performReturnAction() {
+        let action = session.returnAction(model: model)
+        guard session.canPerform(action, model: model, selection: selectionContext) else { return }
+        switch action {
+        case .submit: model.submit()
+        case .replace: replaceSelection()
+        case .refine: refineResult()
+        case .none: break
+        }
+    }
+
+    func refineResult() {
+        guard session.canPerform(.refine, model: model, selection: selectionContext) else { return }
+        panel?.makeFirstResponder(nil)
+        session.focus = .result
+        model.refine()
+    }
+
     func handleShortcut(_ action: ShortcutAction) {
         switch action {
-        case .selectionTranslation:
+        case .selectionTranslation, .selectionGrammar:
             // Capture before showing our panel changes the front application.
             if let selection = selectionBridge.captureSelection(), !selection.text.isEmpty {
-                beginInput(selection.text, mode: .translation, canReplaceSelection: selectionBridge.canReplace)
-            } else if shortcutMonitor?.clipboardChangedDuringSequence == true {
-                translateClipboard()
+                beginInput(selection.text, mode: action == .selectionTranslation ? .translation : .grammar,
+                           canReplaceSelection: selectionBridge.canReplace, presentation: .quick)
+            } else if action == .selectionTranslation, shortcutMonitor?.clipboardChangedDuringSequence == true {
+                clearSelection()
+                beginInput(NSPasteboard.general.string(forType: .string) ?? "", mode: .translation, presentation: .quick)
             } else {
                 clearSelection()
                 model.reset()
-                model.mode = .translation
+                setPresentation(.quick)
+                model.mode = action == .selectionTranslation ? .translation : .grammar
                 model.reportInputError("未能读取选区。请先复制文字，使用“翻译剪贴板”，或在设置中开启辅助功能权限。")
                 showPanel()
             }
@@ -419,18 +482,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             translateClipboard()
         case .translation, .grammar:
             clearSelection()
+            setPresentation(.workspace)
             model.mode = action == .translation ? .translation : .grammar
             showPanel()
-        case .selectionGrammar:
-            let selection = selectionBridge.captureSelection()
-            beginInput(selection?.text ?? "", mode: .grammar,
-                       canReplaceSelection: selectionBridge.canReplace)
         }
     }
 
     @objc func submit() { model.submit() }
     @objc func cancel() { model.cancel() }
-    @objc func sample() { clearSelection(); model.loadSample(0); showPanel() }
+    @objc func sample() { clearSelection(); setPresentation(.workspace); model.loadSample(0); showPanel() }
     @objc func closeWindow() {
         if NSApp.keyWindow === settings { settings?.close() }
         else { closePanel() }

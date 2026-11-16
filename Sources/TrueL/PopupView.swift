@@ -8,102 +8,117 @@ struct PopupView: View {
     @Bindable var preferences: Preferences
     @Bindable var service: ServiceConfiguration
     @Bindable var selectionContext: SelectionReplacementContext
+    @Bindable var session: PopupSession
     var onTranslateClipboard: () -> Void
     var onReplaceSelection: () -> Void
+    var onRefine: () -> Void
     var onLanguageChange: () -> Void
     var onSettings: () -> Void
     var onPin: (Bool) -> Void
     var onHeightChange: (_ preferred: CGFloat, _ minimum: CGFloat) -> Void
     var availableHeight: () -> CGFloat = { 640 }
     @PopupState<CGFloat> private var measuredResultHeight = 180
-    @PopupState<CGFloat> private var measuredErrorHeight = 32
-    @PopupState<CGFloat> private var viewportHeight = PopupLayout.baseHeight
     @FocusState private var followUpFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var showingResult: Bool { model.hasResult || model.isProcessing }
-    private var perfectResult: Bool { model.mode == .grammar && model.hasResult && model.grammarOutcome == .unchanged }
-    private var showingFollowUp: Bool { showingResult && !perfectResult }
+    private var isQuick: Bool { session.presentation == .quick }
+    private var primaryAction: PopupReturnAction { session.returnAction(model: model) }
     private var displayedError: String? {
         let messages = [model.errorMessage, selectionContext.replacementError].compactMap { $0 }
         return messages.isEmpty ? nil : messages.joined(separator: "\n")
     }
-    private var naturalEditorHeight: CGFloat { showingResult && model.mode == .translation ? 64 : 96 }
-    private var editorHeight: CGFloat {
-        naturalEditorHeight + (showingResult ? 0 : max(0, viewportHeight - baseHeight - errorHeight))
-    }
-    private var baseHeight: CGFloat { PopupLayout.baseHeight - (96 - naturalEditorHeight) }
-    private var errorHeight: CGFloat {
-        displayedError == nil ? 0 : min(104, max(16, measuredErrorHeight)) + SurfaceMetrics.relatedGap
-    }
-    private var preferredResultHeight: CGFloat {
-        let minimum: CGFloat = 96
-        let maximum = max(minimum, floor(availableHeight() - baseHeight - SurfaceMetrics.islandGap
-            - (showingFollowUp ? PopupLayout.followUpHeight : 0) - errorHeight))
-        return min(maximum, max(minimum, measuredResultHeight))
-    }
-    private var resultHeight: CGFloat {
-        max(96, viewportHeight - baseHeight - SurfaceMetrics.islandGap
-            - (showingFollowUp ? PopupLayout.followUpHeight : 0) - errorHeight)
-    }
-    private var panelHeight: CGFloat {
-        baseHeight + (showingResult ? preferredResultHeight + SurfaceMetrics.islandGap : 0)
-            + (showingFollowUp ? PopupLayout.followUpHeight : 0) + errorHeight
-    }
-    private var minimumPanelHeight: CGFloat {
-        baseHeight + (showingResult ? 96 + SurfaceMetrics.islandGap : 0)
-            + (showingFollowUp ? PopupLayout.followUpHeight : 0) + errorHeight
+    private var quickHeight: CGFloat {
+        min(availableHeight(), max(PopupLayout.baseHeight,
+            WindowChromeMetrics.height + SurfaceMetrics.edge + PopupLayout.resultHeaderHeight
+                + measuredResultHeight + PopupLayout.followUpHeight))
     }
 
     var body: some View {
-        GeometryReader { geometry in
-            panelContents
-                .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
-                .onChange(of: geometry.size.height, initial: true) { _, height in viewportHeight = height }
-        }
-    }
-
-    private var panelContents: some View {
         VStack(spacing: 0) {
             header
-            VStack(spacing: SurfaceMetrics.islandGap) {
-                VStack(spacing: SurfaceMetrics.relatedGap) {
-                    modeBar
-                    editor
-                    if let error = displayedError { inputStatus(error) }
-                    toolbar
-                }
-                .padding(SurfaceMetrics.inset)
-                .modifier(TrueLIsland())
-                if showingResult {
-                    VStack(spacing: 0) {
-                        result
-                        if showingFollowUp { followUp }
-                    }
-                    .modifier(TrueLIsland())
-                }
+            HStack(alignment: .top, spacing: SurfaceMetrics.islandGap) {
+                if !isQuick { sourceIsland }
+                resultIsland
             }
             .padding(.horizontal, SurfaceMetrics.edge)
-            .padding(.top, WindowChromeMetrics.contentGap)
             .padding(.bottom, SurfaceMetrics.edge)
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .frame(maxHeight: .infinity, alignment: .top)
-        .onChange(of: CGSize(width: minimumPanelHeight, height: panelHeight), initial: true) { _, size in
-            onHeightChange(size.height, size.width)
+        .onChange(of: quickHeight, initial: true) { _, height in updateWindowHeight(height) }
+        .onChange(of: session.presentation) { _, _ in
+            followUpFocused = false
+            updateWindowHeight(quickHeight)
         }
         .onChange(of: model.inputRevision) { _, _ in followUpFocused = false }
+        .onChange(of: followUpFocused) { _, focused in
+            if focused { session.focus = .followUp }
+            else if session.focus == .followUp { session.focus = .result }
+        }
+        .onChange(of: session.focus) { _, focus in
+            followUpFocused = focus == .followUp
+        }
         .onExitCommand { model.cancel(); followUpFocused = false }
     }
 
-    private func inputStatus(_ error: String) -> some View {
-        ScrollView {
-            TrueLInlineStatus(text: error, tone: .error, symbol: "exclamationmark.circle")
-            .onGeometryChange(for: CGFloat.self) { ceil($0.size.height) } action: { height in
-                if abs(height - measuredErrorHeight) > 0.5 { measuredErrorHeight = height }
+    private func updateWindowHeight(_ height: CGFloat) {
+        onHeightChange(isQuick ? height : session.presentation.initialSize.height,
+                       session.presentation.minimumHeight)
+    }
+
+    private var sourceIsland: some View {
+        VStack(spacing: 0) {
+            modeBar
+                .padding(.horizontal, SurfaceMetrics.inset)
+                .padding(.top, SurfaceMetrics.inset)
+                .padding(.bottom, SurfaceMetrics.relatedGap)
+            editor.padding(.horizontal, SurfaceMetrics.inset)
+            if let error = displayedError {
+                TrueLInlineStatus(text: error, tone: .error, symbol: "exclamationmark.circle")
+                    .padding(.horizontal, SurfaceMetrics.inset * 2)
+                    .padding(.top, SurfaceMetrics.relatedGap)
+                    .frame(maxHeight: 80)
             }
+            toolbar
+                .padding(.horizontal, SurfaceMetrics.inset)
+                .padding(.top, SurfaceMetrics.relatedGap)
+                .padding(.bottom, SurfaceMetrics.inset)
         }
-        .frame(height: max(16, errorHeight - SurfaceMetrics.relatedGap))
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .modifier(TrueLIsland())
+    }
+
+    private var resultIsland: some View {
+        VStack(spacing: 0) {
+            fixedResultHeader
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    if isQuick, let error = displayedError {
+                        TrueLInlineStatus(text: error, tone: .error, symbol: "exclamationmark.circle")
+                    }
+                    if model.isProcessing { processingResult }
+                    else if model.hasResult {
+                        if model.mode == .translation { TranslationResultText(text: model.output) }
+                        else {
+                            CorrectedText(output: model.output, corrections: model.corrections)
+                            if !model.tip.isEmpty { AnalysisTip(text: model.tip) }
+                        }
+                    } else if displayedError == nil {
+                        Text(model.mode == .translation ? "译文将在这里显示" : "修改结果将在这里显示")
+                            .font(.system(size: TypeScale.body)).foregroundStyle(Theme.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, PopupLayout.textInset)
+                .padding(.bottom, 12)
+                .onGeometryChange(for: CGFloat.self) { ceil($0.size.height) } action: { height in
+                    if abs(height - measuredResultHeight) > 0.5 { measuredResultHeight = height }
+                }
+            }
+            .scrollIndicators(.automatic)
+            .padding(.horizontal, SurfaceMetrics.inset)
+            followUp
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .modifier(TrueLIsland())
     }
 
     private var header: some View {
@@ -157,15 +172,19 @@ struct PopupView: View {
                     .padding(.horizontal, PopupLayout.textInset)
                     .allowsHitTesting(false)
             }
-            PanelEditor(text: $model.input, onSubmit: { model.submit() }, onCancel: { model.cancel() })
+            PanelEditor(text: $model.input, onSubmit: { model.submit() }, onCancel: { model.cancel() },
+                        onFocusChange: { focused in
+                            if focused { session.focus = .source }
+                            else if session.focus == .source { session.focus = .result }
+                        })
         }
-        .frame(height: editorHeight)
+        .frame(maxHeight: .infinity)
     }
 
     private var toolbar: some View {
         HStack(spacing: 8) {
             HStack(spacing: 0) {
-                TaskModelMenu(service: service, mode: model.mode, onSettings: onSettings)
+                TaskModelMenu(service: service, mode: model.mode, maximumWidth: 180, onSettings: onSettings)
                 Button(action: onTranslateClipboard) {
                     Image(systemName: "doc.on.clipboard").font(.system(size: TypeScale.toolSymbol))
                 }.buttonStyle(QuietIconStyle()).help("翻译剪贴板").accessibilityLabel("翻译剪贴板")
@@ -174,7 +193,6 @@ struct PopupView: View {
             Spacer(minLength: 8)
             Button {
                 if model.isProcessing { model.cancel() }
-                else if followUpFocused { model.refine() }
                 else { model.submit() }
             } label: {
                 HStack(spacing: 8) {
@@ -184,10 +202,11 @@ struct PopupView: View {
                     } else {
                         Text(model.mode == .grammar ? "检查" : "翻译")
                         Image(systemName: "return").font(.system(size: 11))
+                            .opacity(primaryAction == .submit ? 1 : 0)
                     }
                 }
             }
-            .buttonStyle(TrueLButtonStyle(role: .primary))
+            .buttonStyle(TrueLButtonStyle(role: primaryAction == .submit ? .primary : .secondary))
             .help("回车提交 · Shift＋回车换行")
             .disabled(model.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
@@ -216,64 +235,6 @@ struct PopupView: View {
         .accessibilityAddTraits(model.mode == mode ? .isSelected : [])
     }
 
-    @ViewBuilder
-    private var result: some View {
-        if model.mode == .translation {
-            translationResult
-        } else {
-            grammarResult
-        }
-    }
-
-    private var grammarResult: some View {
-        let hasHeader = !model.isProcessing && !perfectResult
-        return VStack(spacing: 0) {
-            if hasHeader { fixedResultHeader }
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    if model.isProcessing {
-                        processingResult
-                    } else if perfectResult {
-                        perfectResultContent
-                    } else {
-                        CorrectedText(output: model.output, corrections: model.corrections)
-                        if !model.tip.isEmpty { AnalysisTip(text: model.tip) }
-                    }
-                }
-                .padding(.horizontal, PopupLayout.textInset)
-                .padding(.top, hasHeader ? 0 : 12)
-                .padding(.bottom, hasHeader && !model.tip.isEmpty && showingFollowUp ? 0 : 12)
-                .onGeometryChange(for: CGFloat.self) { ceil($0.size.height) } action: { height in
-                    updateResultHeight(height + (hasHeader ? PopupLayout.resultHeaderHeight : 0))
-                }
-            }
-            .scrollIndicators(.automatic)
-            .padding(.horizontal, SurfaceMetrics.inset)
-        }
-        .frame(height: resultHeight)
-    }
-
-    private var translationResult: some View {
-        VStack(spacing: 0) {
-            fixedResultHeader
-            ScrollView {
-                Group {
-                    if model.output.isEmpty && model.isProcessing { processingResult }
-                    else { TranslationResultText(text: model.output) }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, PopupLayout.textInset)
-                .padding(.bottom, 12)
-                .onGeometryChange(for: CGFloat.self) { ceil($0.size.height) } action: { height in
-                    updateResultHeight(height + PopupLayout.resultHeaderHeight)
-                }
-            }
-            .scrollIndicators(.automatic)
-            .padding(.horizontal, SurfaceMetrics.inset)
-        }
-        .frame(height: resultHeight)
-    }
-
     private var fixedResultHeader: some View {
         resultHeader
             .padding(.horizontal, SurfaceMetrics.inset)
@@ -283,40 +244,44 @@ struct PopupView: View {
 
     private var resultHeader: some View {
         HStack(spacing: 8) {
-            Text(model.mode == .translation ? "译文" : (model.grammarOutcome == .unverified ? "模拟结果" : "修改结果"))
+            Text(model.mode == .translation ? "译文" : "修改结果")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Theme.resultSecondary)
                 .padding(.leading, SurfaceMetrics.inset)
-            Spacer()
+            Spacer(minLength: 8)
             if model.hasResult {
-                HStack(spacing: 0) {
-                    Button { model.copyResult() } label: {
-                        ZStack {
-                            PopupGlyph(.copy, size: TypeScale.toolSymbol)
-                                .foregroundStyle(Theme.resultSecondary)
-                                .opacity(model.copied ? 0 : 1)
-                            PopupGlyph(.checkCircleFilled, size: TypeScale.toolSymbol)
-                                .foregroundStyle(Theme.resultSuccess)
-                                .opacity(model.copied ? 1 : 0)
-                        }
-                        .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: model.copied)
-                    }
-                    .buttonStyle(QuietIconStyle())
-                    .accessibilityLabel(model.copied ? "已复制" : (model.mode == .translation ? "复制译文" : "复制结果"))
-                    Button {
-                        if selectionContext.canReplaceSelection { onReplaceSelection() }
-                        else { model.applyResult() }
-                    } label: {
-                        HStack(spacing: 4) {
-                            PopupGlyph(.check, size: TypeScale.toolSymbol)
-                            Text(selectionContext.canReplaceSelection ? "替换原文" : "替换").font(.system(size: 12))
-                        }
-                        .foregroundStyle(Theme.resultBlue)
-                    }
-                    .buttonStyle(QuietIconStyle(isIconOnly: false, joinsPreviousControl: true))
-                    .disabled(model.accepted)
-                    .help(selectionContext.canReplaceSelection ? "替换原应用中的选中文本" : "将结果放回上方编辑区")
+                Button { model.copyResult() } label: {
+                    PopupGlyph(model.copied ? .checkCircleFilled : .copy, size: TypeScale.toolSymbol)
+                        .foregroundStyle(model.copied ? Theme.resultSuccess : Theme.resultSecondary)
                 }
+                .buttonStyle(QuietIconStyle())
+                .accessibilityLabel(model.copied ? "已复制" : "复制结果")
+                .help(model.copied ? "已复制" : "复制结果")
+                Button {
+                    if isQuick { onReplaceSelection() }
+                    else { model.applyResult() }
+                } label: {
+                    HStack(spacing: 8) {
+                        Text("替换")
+                        if isQuick {
+                            Image(systemName: "return").font(.system(size: 11))
+                                .opacity(primaryAction == .replace ? 1 : 0)
+                        }
+                    }
+                }
+                .buttonStyle(TrueLButtonStyle(role: primaryAction == .replace ? .primary : .tertiary))
+                .disabled(isQuick ? !selectionContext.canReplaceSelection : model.accepted)
+                .accessibilityLabel(isQuick ? "替换原选区" : "将结果放回原文编辑区")
+                .help(isQuick ? (selectionContext.canReplaceSelection ? "回车替换原应用中的选中文字"
+                    : "原选区不可编辑或已失效，可以复制结果") : "将结果放回左侧编辑区")
+            } else if isQuick, model.isProcessing {
+                Button { model.cancel() } label: {
+                    Image(systemName: "stop.fill").font(.system(size: TypeScale.inlineSymbol))
+                }.buttonStyle(QuietIconStyle()).accessibilityLabel("停止处理")
+            } else if isQuick, !model.input.isEmpty {
+                Button { model.submit() } label: {
+                    HStack(spacing: 8) { Text("重试"); Image(systemName: "return") }
+                }.buttonStyle(TrueLButtonStyle(role: .primary))
             }
         }
         .frame(height: PopupLayout.iconButtonSize)
@@ -333,25 +298,6 @@ struct PopupView: View {
         .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
     }
 
-    private var perfectResultContent: some View {
-        VStack(spacing: 8) {
-            PopupGlyph(.checkCircleFilled, size: 28)
-                .foregroundStyle(Theme.resultSuccess)
-            Text("未发现语法问题")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Theme.resultText)
-            Text("原文无需修改")
-                .font(.system(size: 12))
-                .foregroundStyle(Theme.resultSecondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-    }
-
-    private func updateResultHeight(_ height: CGFloat) {
-        if abs(height - measuredResultHeight) > 0.5 { measuredResultHeight = height }
-    }
-
     private var followUp: some View {
         HStack(spacing: 8) {
             ZStack(alignment: .leading) {
@@ -362,19 +308,21 @@ struct PopupView: View {
                 }
                 TextField("", text: $model.followUp)
                     .textFieldStyle(.plain).font(.system(size: 12))
-                    .focused($followUpFocused).onSubmit { model.refine() }
+                    .focused($followUpFocused).onSubmit(onRefine)
                     .accessibilityLabel("追问或调整要求")
             }
-            Button { model.refine() } label: {
-                Image(systemName: "arrow.up").font(.system(size: TypeScale.toolSymbol, weight: .medium))
+            .padding(.horizontal, SurfaceMetrics.inset)
+            .frame(height: SurfaceMetrics.controlHeight)
+            .modifier(TrueLField(focused: followUpFocused))
+            Button(action: onRefine) {
+                Image(systemName: primaryAction == .refine ? "return" : "arrow.up")
+                    .font(.system(size: TypeScale.inlineSymbol, weight: .medium))
             }
-            .buttonStyle(QuietIconStyle(embedded: true)).accessibilityLabel("发送调整要求")
-            .disabled(model.followUp.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .buttonStyle(TrueLButtonStyle(role: primaryAction == .refine ? .primary : .tertiary, iconOnly: true))
+            .accessibilityLabel("提交调整要求").help("回车提交调整要求")
+            .disabled(!session.canPerform(.refine, model: model, selection: selectionContext))
         }
         .disabled(model.isProcessing || !model.hasResult)
-        .padding(.leading, SurfaceMetrics.inset).padding(.trailing, 4)
-        .frame(height: SurfaceMetrics.controlHeight)
-        .modifier(TrueLField(focused: followUpFocused))
         .padding(.top, SurfaceMetrics.relatedGap)
         .padding(.horizontal, SurfaceMetrics.inset).padding(.bottom, SurfaceMetrics.inset)
     }
@@ -461,12 +409,12 @@ private struct CorrectedText: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(paragraphs.enumerated()), id: \.offset) { paragraphIndex, tokens in
                 // A blank paragraph adds space without inventing text.
-                if tokens.isEmpty { Color.clear.frame(height: 0) }
+                if tokens.isEmpty { Color.clear.frame(height: BodyTextStyle.lineHeight) }
                 else {
-                    WordFlow(lineSpacing: 4) {
+                    WordFlow(lineSpacing: 0) {
                         ForEach(Array(tokens.enumerated()), id: \.offset) { tokenIndex, token in
                             if let correction = token.correction {
                                 CorrectionChip(correction: correction,
@@ -476,7 +424,9 @@ private struct CorrectedText: View {
                                                hover: hover)
                                     .layoutValue(key: LeadingWhitespaceWidth.self, value: token.leadingWidth)
                             } else {
-                                Text(token.text).font(.system(size: TypeScale.body)).foregroundStyle(Theme.resultText).padding(.vertical, 2)
+                                Text(token.text).font(.system(size: TypeScale.body)).foregroundStyle(Theme.resultText)
+                                    .lineSpacing(BodyTextStyle.paragraph.lineSpacing)
+                                    .frame(minHeight: BodyTextStyle.lineHeight, alignment: .topLeading)
                                     .layoutValue(key: LeadingWhitespaceWidth.self, value: token.leadingWidth)
                             }
                         }
@@ -518,7 +468,8 @@ private struct CorrectionChip: View {
             Text(correction.replacement)
                 .font(.system(size: TypeScale.body))
                 .foregroundStyle(Theme.replacementText)
-                .padding(.vertical, 2)
+                .lineSpacing(BodyTextStyle.paragraph.lineSpacing)
+                .frame(minHeight: BodyTextStyle.lineHeight, alignment: .topLeading)
                 .background {
                     RoundedRectangle(cornerRadius: SurfaceMetrics.embeddedRadius, style: .continuous)
                         .fill(hover.activeID == occurrenceID ? Theme.correctionHover : Theme.correctionBackground)

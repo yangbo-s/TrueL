@@ -17,8 +17,14 @@ extension AppDelegate {
         service.draftKey = "snapshot-only-placeholder"
         await service.saveKey()
         selectPreviewModels()
+        // Let configuration observers settle before starting a fixture request.
+        await pause(milliseconds: 150)
         if ProcessInfo.processInfo.environment["APP_SNAPSHOT_SCOPE"] == "alignment" {
             await takeAlignmentSnapshots(directory: directory)
+            return
+        }
+        if ProcessInfo.processInfo.environment["APP_SNAPSHOT_SCOPE"] == "workflows" {
+            await takeWorkflowSnapshots(directory: directory)
             return
         }
         preferences.alwaysOnTop = false
@@ -66,6 +72,7 @@ extension AppDelegate {
                 results.append(capture(panel, name: "toolbar-unconfigured-\(scheme)", folder: folder))
                 continue
             }
+            setPresentation(.workspace)
             model.mode = .grammar
             model.reset()
             showPanel()
@@ -98,13 +105,13 @@ extension AppDelegate {
             results.append(capture(panel, name: "popup-wide-\(scheme)", folder: folder))
             windowWillStartLiveResize(Notification(name: NSWindow.willStartLiveResizeNotification, object: panel))
             var resized = panel.frame
-            resized.size = NSSize(width: 640, height: 560)
+            resized.size = NSSize(width: 960, height: 560)
             panel.setFrame(resized, display: true)
             windowDidEndLiveResize(Notification(name: NSWindow.didEndLiveResizeNotification, object: panel))
             await pause()
             results.append(capture(panel, name: "popup-resized-\(scheme)", folder: folder))
             userPanelHeight = nil
-            panel.setContentSize(NSSize(width: PopupLayout.compactWidth, height: panel.frame.height))
+            panel.setContentSize(NSSize(width: PopupPresentation.workspace.initialSize.width, height: panel.frame.height))
             resize(height: desiredHeight)
             model.mode = .translation
             model.showPreviewResult()
@@ -133,7 +140,9 @@ extension AppDelegate {
             await pause()
             results.append(capture(panel, name: "popup-indented-\(scheme)", folder: folder))
             model.loadSample(0)
-            handleShortcut(.translation)
+            setPresentation(.quick)
+            model.mode = .translation
+            selectionContext.bind(canReplace: true)
             model.showPreviewResult()
             await pause()
             results.append(capture(panel, name: "selection-result-\(scheme)", folder: folder))
@@ -203,6 +212,54 @@ extension AppDelegate {
         }
     }
 
+    private func takeWorkflowSnapshots(directory: String) async {
+        let folder = URL(fileURLWithPath: directory)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        var records: [[String: String]] = []
+        for scheme in ["light", "dark"] {
+            preferences.appearance = scheme
+            NSApp.appearance = NSAppearance(named: scheme == "dark" ? .darkAqua : .aqua)
+            for mode in WorkMode.allCases {
+                beginInput("Haha, enjoy~\n\nYou not the last one.", mode: mode,
+                           canReplaceSelection: true, presentation: .quick)
+                await pause(milliseconds: 120)
+                records.append(capture(panel, name: "quick-\(mode.rawValue)-loading-\(scheme)", folder: folder))
+                model.showPreviewResult()
+                await pause()
+                records.append(capture(panel, name: "quick-\(mode.rawValue)-result-\(scheme)", folder: folder))
+                session.focus = .followUp
+                model.followUp = "更简洁一些，保留轻松的语气"
+                await pause()
+                records.append(capture(panel, name: "quick-\(mode.rawValue)-refine-\(scheme)", folder: folder))
+                panel.makeFirstResponder(nil)
+                session.focus = .result
+                model.followUp = ""
+                selectionContext.clear()
+                await pause()
+                records.append(capture(panel, name: "quick-\(mode.rawValue)-readonly-\(scheme)", folder: folder))
+                handleShortcut(mode == .translation ? .translation : .grammar)
+                model.showPreviewResult()
+                await pause()
+                records.append(capture(panel, name: "workspace-\(mode.rawValue)-result-\(scheme)", folder: folder))
+                session.focus = .followUp
+                model.followUp = "使用更自然的表达"
+                await pause()
+                records.append(capture(panel, name: "workspace-\(mode.rawValue)-refine-\(scheme)", folder: folder))
+            }
+            beginInput("", mode: .translation, presentation: .quick)
+            await pause()
+            records.append(capture(panel, name: "quick-empty-\(scheme)", folder: folder))
+            beginInput("A selected sentence.", mode: .translation, presentation: .quick)
+            model.showPreviewError("请求未完成，请检查网络连接后重试。")
+            await pause()
+            records.append(capture(panel, name: "quick-error-\(scheme)", folder: folder))
+        }
+        let data = try? JSONSerialization.data(withJSONObject: records, options: [.prettyPrinted, .sortedKeys])
+        try? data?.write(to: folder.appendingPathComponent("captures.json"))
+        fputs("SNAPSHOT done \(directory)\n", stderr)
+        NSApp.terminate(nil)
+    }
+
     private func takeAlignmentSnapshots(directory: String) async {
         let folder = URL(fileURLWithPath: directory)
         do { try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true) }
@@ -217,11 +274,11 @@ extension AppDelegate {
                 model.input = Array(repeating: mode == .translation ? source : "Haha, enjoy~\n\nYou not the last one.", count: 8).joined(separator: "\n\n")
                 showPanel()
                 model.showPreviewResult()
-                for width in [PopupLayout.compactWidth, PopupLayout.wideWidth] {
+                for width in [PopupPresentation.workspace.minimumWidth, CGFloat(960)] {
                     userPanelHeight = 520
                     panel.setContentSize(NSSize(width: width, height: 520))
                     await pause()
-                    let positions: [CGFloat] = width == PopupLayout.compactWidth ? [0, 0.5, 1] : [0]
+                    let positions: [CGFloat] = width == PopupPresentation.workspace.minimumWidth ? [0, 0.5, 1] : [0]
                     for fraction in positions {
                         let scrolls = panel.contentView.map { scrollViews(in: $0) } ?? []
                         for scroll in scrolls {
@@ -238,7 +295,7 @@ extension AppDelegate {
                             scroll.flashScrollers()
                         }
                         await pause(milliseconds: 80)
-                        let size = width == PopupLayout.compactWidth ? "compact" : "wide"
+                        let size = width == PopupPresentation.workspace.minimumWidth ? "compact" : "wide"
                         let position = fraction == 0 ? "top" : fraction == 1 ? "bottom" : "middle"
                         var record = capture(panel, name: "alignment-\(mode.rawValue)-\(size)-\(position)-\(scheme)", folder: folder)
                         record["scrollStyles"] = scrolls.map { $0.scrollerStyle == .overlay ? "overlay" : "legacy" }.joined(separator: ",")
@@ -324,6 +381,13 @@ extension AppDelegate {
                 "width": String(format: "%.1f", window.frame.width),
                 "height": String(format: "%.1f", window.frame.height),
                 "keyWindow": String(window.isKeyWindow),
+                "presentation": session.presentation.rawValue,
+                "returnAction": String(describing: session.returnAction(model: model)),
+                "focus": String(describing: session.focus),
+                "isProcessing": String(model.isProcessing),
+                "hasResult": String(model.hasResult),
+                "canSubmit": String(model.canSubmit),
+                "scrollCount": String(window.contentView.map { scrollViews(in: $0).count } ?? 0),
                 "windowNumber": String(window.windowNumber),
                 "visibleContentWindows": String([panel, settings].compactMap { $0 }.filter { $0.isVisible }.count),
                 "nativeWindowControls": String([NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton]
