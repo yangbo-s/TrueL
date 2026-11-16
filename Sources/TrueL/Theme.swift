@@ -58,7 +58,8 @@ enum BodyTextStyle {
 
 enum WindowChromeMetrics {
     static let height: CGFloat = 52
-    static let brandIconSize: CGFloat = 20
+    static let brandIconSize: CGFloat = 12
+    static let brandGap: CGFloat = 4
     static let contentGap: CGFloat = 0
     static let trafficLightFirstCenter: CGFloat = 20
     static let trafficLightPitch: CGFloat = 20
@@ -154,7 +155,7 @@ struct WindowChrome<Trailing: View>: View {
         ZStack {
             WindowDragRegion(identifier: dragIdentifier)
                 .padding(.leading, WindowChromeMetrics.leadingContentInset).padding(.trailing, 104)
-            HStack(spacing: SurfaceMetrics.relatedGap) {
+            HStack(spacing: WindowChromeMetrics.brandGap) {
                 if let ink = AppIconAssets.mark(for: appIcon, accent: false),
                    let accent = AppIconAssets.mark(for: appIcon, accent: true) {
                     ZStack {

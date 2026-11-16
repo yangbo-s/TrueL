@@ -22,4 +22,4 @@ REQ-087：主浮窗、快速浮窗及设置页的标题左侧显示当前应用�
 
 安装包为 `build/releases/0.5.1/TrueL-0.5.1-arm64.dmg`，SHA-256：`7bd8984079ac7c8c391cabb471b224e612838ac36cfaf6769489a8abc7d613db`。
 
-公开发布与回读证据待补齐。
+源码提交 `edb048edb3d50f78f4a9926288614ff335da8a30` 与 [v0.5.1](https://github.com/yangbo-s/TrueL/releases/tag/v0.5.1) 已发布。匿名下载的安装包与本地逐字节一致，摘要与 Ed25519 验证通过，证据位于 `artifacts/release-0.5.1/public-release-check.log`。此版本未进入自动更新源；更紧凑的最终比例与更新交付见 [0.5.2 验收](RELEASE-0.5.2.md)。
