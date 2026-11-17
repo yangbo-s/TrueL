@@ -140,6 +140,8 @@ struct LanguageEngineTests {
         _ = try await engine.perform(LanguageRequest(source: "A source sentence.", mode: .translation,
             targetLanguage: "日本語", writingStyle: "literal", sourceLanguage: "English"))
         #expect(client.lastSystem.contains("Source language: English"))
+        #expect(client.lastSystem.contains("Translate only the value of its \"source\" field"))
+        #expect(client.lastSystem.contains("Do not include the request's outer JSON object"))
         #expect(client.lastSystem.contains(TextStyle.resolve("literal", for: .translation).instruction))
         let payload = try #require(JSONSerialization.jsonObject(with: Data(client.lastUser.utf8)) as? [String: String])
         #expect(payload == ["source": "A source sentence."])

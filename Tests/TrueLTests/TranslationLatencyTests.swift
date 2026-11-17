@@ -4,6 +4,46 @@ import Testing
 
 @MainActor
 struct TranslationLatencyTests {
+    @Test(arguments: [false, true])
+    func sourceEnvelopeNeverReachesTheVisibleOrCopiedResult(_ fails: Bool) async throws {
+        let gate = TranslationGate()
+        let client = makeClient { request, receive in
+            try await receive(.response(streamResponse(request)))
+            try await receive(.line(chunk(#"{"source":"你好"#)))
+            await gate.pause()
+            if fails { throw URLError(.networkConnectionLost) }
+            try await receive(.line(chunk(#"\n第二段。"}"#)))
+            try await endStream(receive)
+        }
+        let service = await configuredService(client)
+        var copied: [String] = []
+        let model = DemoModel(engine: ProviderLanguageEngine(service: service, client: client), copyText: { copied.append($0) })
+        model.mode = .translation
+        model.input = "Hello.\nSecond paragraph."
+        model.submit()
+        await gate.waitUntilPaused()
+        #expect(model.output.isEmpty)
+        #expect(model.isProcessing && !model.hasResult)
+        model.copyResult()
+        model.applyResult()
+        #expect(copied.isEmpty && model.input == "Hello.\nSecond paragraph.")
+        await gate.resume()
+        await waitForCompletion(model)
+        #expect(model.output == (fails ? "" : "你好\n第二段。"))
+        #expect(model.hasResult == !fails)
+        model.copyResult()
+        if fails {
+            #expect(copied.isEmpty)
+            #expect(model.errorMessage == AIClientError.network.errorDescription)
+            model.applyResult()
+            #expect(model.input == "Hello.\nSecond paragraph.")
+        } else {
+            #expect(copied == ["你好\n第二段。"])
+            model.applyResult()
+            #expect(model.input == "你好\n第二段。")
+        }
+    }
+
     @Test func lunaTranslationRequestsStreamingWithoutExtraReasoning() async throws {
         let recorder = TranslationRequestRecorder()
         let client = AIClient(transport: { request in

@@ -9,7 +9,7 @@
 | 模块 | 职责 |
 | --- | --- |
 | App / PopupSession / NativeSurface | 主浮窗、设置窗口、原生窗口控制和失焦收起 |
-| DemoModel / LanguageEngine / LanguageOptions | 编辑状态、取消、语言检测与互换、风格指令和结果解析 |
+| DemoModel / LanguageEngine / LanguageOptions / TranslationOutput | 编辑状态、取消、语言检测与互换、风格指令和结果解析 |
 | ServiceConfiguration | 账号验证、模型目录、按任务保存选择及旧配置迁移 |
 | AIClient / AIProvider | 固定服务端点、鉴权、分页目录、文本生成和安全错误信息 |
 | CredentialStore / CredentialBrokerClient | 异步调用固定 XPC 凭据组件；测试用内存实现 |
@@ -36,6 +36,8 @@
 目录可分页，最多 50 页；重复页 token 和无效响应被拒绝。服务端 401、403、429、超时、内容拦截、截断及空响应均有独立错误。
 
 OpenAI 翻译通过 `generateTranslation` 使用 SSE，首个正文片段立即显示，后续更新最多每 32 毫秒一次。仅已核实支持的 `gpt-6-luna` 翻译设置 `reasoning_effort: none`。推理字段不显示，完整 `stop` / `[DONE]` 后才允许复制和替换；流中错误或缺失结束标记清除部分译文。每次发布片段和最终结果都检查取消及配置 revision。网络仍复用禁止重定向的临时 URLSession，结束、取消或解析失败会关闭当前任务，且不自动重试。契约与证据见 [翻译等待优化](TRANSLATION-LATENCY.md)。
+
+翻译提示词明确区分请求的 `source` JSON 外壳与字段中的原文。`TranslationOutput` 在 engine 边界处理所有服务商的结果：普通文本继续增量显示，以对象或代码围栏开始的疑似包装响应暂缓显示，最终仅拆除单一 `source` 字符串包装（含 JSON / 无标签围栏），使用标准 JSON 字符串解码恢复换行与 Unicode。原文自身以对象、数组或围栏开始时保留结构；额外字段、重复键和嵌套对象不被拆除。空正文或已识别但破损的包装返回固定错误，并沿用 model 清理逻辑。见 [翻译正文格式修复](TRANSLATION-OUTPUT.md)。
 
 OpenAI 改写通过 `generateRewrite` 复用 `OpenAITextStream`，已验证的 `gpt-6.1-terra` 使用 `reasoning_effort: low`。提示词要求先生成 `output`，正文字符串完整后由 `RewriteOutputPreview` 解码并提前显示；不预览 JSON、不完整字符串或嵌套同名字段，字段顺序不同则等待最终解析。纠错与提示仍须完整响应通过 `parseGrammar` 后才发布，预览阶段禁止复制和替换，失败清除预览。其他模型和服务商的推理策略不变，非 OpenAI 改写保留完整响应路径。见 [改写等待优化](REWRITE-LATENCY.md)。
 
