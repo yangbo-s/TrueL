@@ -44,14 +44,14 @@ private enum ProbeError: Error { case failed(String) }
             guard AXUIElementSetAttributeValue(editor, kAXSelectedTextRangeAttribute as CFString,
                 AXValueCreate(.cfRange, &range)!) == .success else { throw ProbeError.failed("Cannot select fixture") }
         }
-        func key(_ code: CGKeyCode, flags: CGEventFlags, down: Bool) throws {
+        func key(_ code: CGKeyCode, flags: CGEventFlags, down: Bool, delay: Double = 0.06) throws {
             guard NSWorkspace.shared.frontmostApplication?.processIdentifier == fixture.processIdentifier else {
                 throw ProbeError.failed("Fixture lost focus; stopped input")
             }
             let event = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: down)!
             event.flags = flags
             event.post(tap: .cgSessionEventTap)
-            wait(0.06)
+            if delay > 0 { wait(delay) }
         }
         let store = ShortcutStore(persist: false, captureKeyboardEvents: false)
         let bridge = SelectionBridge()
@@ -125,6 +125,66 @@ private enum ProbeError: Error { case failed(String) }
             throw ProbeError.failed("Cannot restore owned fixture")
         }
         print("PASS mismatched Ctrl+A replayed before the next typed character")
+
+        let selectAll = ShortcutStroke(keyCode: 0, modifiers: .command)
+        guard store.setBinding(.init(strokes: [selectAll, selectAll]), for: .selectionGrammar) else {
+            throw ProbeError.failed("Cannot configure Command+A,A")
+        }
+        monitor.refreshConfiguration()
+        let fullText = "Rewritten. Same. Same."
+        var selectionTimes: [Double] = []
+        for _ in 0..<5 {
+            monitor.stop()
+            monitor.start()
+            try select(11, 5)
+            let start = ProcessInfo.processInfo.systemUptime
+            try key(0, flags: .maskCommand, down: true, delay: 0)
+            try key(0, flags: .maskCommand, down: false, delay: 0)
+            while attr(editor, kAXSelectedTextAttribute) as? String != fullText,
+                  ProcessInfo.processInfo.systemUptime - start < 0.25 { wait(0.002) }
+            let elapsed = ProcessInfo.processInfo.systemUptime - start
+            guard attr(editor, kAXSelectedTextAttribute) as? String == fullText, elapsed < 0.25,
+                  captures.count == 2 else { throw ProbeError.failed("Single Command+A waited instead of selecting immediately") }
+            selectionTimes.append(elapsed * 1000)
+        }
+        print("PASS single Command+A selected immediately (ms): \(selectionTimes.map { String(format: "%.2f", $0) }.joined(separator: ", "))")
+        try select(11, 5)
+        wait(1.15)
+        guard attr(editor, kAXSelectedTextAttribute) as? String == "Same.", captures.count == 2 else {
+            throw ProbeError.failed("Expired Command+A replayed select-all or triggered rewriting")
+        }
+        // Both presses are posted in one burst so the real monitor/capture ordering is exercised.
+        for attempt in 0..<10 {
+            try select(11, 5)
+            for _ in 0..<2 {
+                try key(0, flags: .maskCommand, down: true, delay: 0)
+                try key(0, flags: .maskCommand, down: false, delay: 0)
+            }
+            wait(0.15)
+            guard captures.count == 3 + attempt, captures.last?.0 == .selectionGrammar,
+                  captures.last?.1 == fullText, bridge.canReplace else {
+                throw ProbeError.failed("Command+A,A did not capture the native full selection exactly once: \(captures)")
+            }
+        }
+        try bridge.replaceSelectedText("All rewritten.")
+        guard attr(editor, kAXValueAttribute) as? String == "All rewritten." else {
+            throw ProbeError.failed("Command+A,A replacement did not replace the complete selection")
+        }
+        guard AXUIElementSetAttributeValue(editor, kAXValueAttribute as CFString, fullText as CFString) == .success else {
+            throw ProbeError.failed("Cannot restore owned fixture after full-selection rewrite")
+        }
+        print("PASS 10 burst Command+A,A sequences each captured the full selection once; replacement used that full selection; timeout did not replay")
+        let completed = captures.count
+        for _ in 0..<2 {
+            try key(0, flags: .maskCommand, down: true, delay: 0)
+            try key(0, flags: .maskCommand, down: false, delay: 0)
+        }
+        wait(0.01)
+        monitor.stop()
+        monitor.start()
+        wait(0.15)
+        guard captures.count == completed else { throw ProbeError.failed("Restart delivered an obsolete pending rewrite") }
+        print("PASS restarting the monitor canceled pending native-selection capture")
         monitor.stop()
         try select(11, 5)
         guard bridge.captureSelection() != nil else { throw ProbeError.failed("Cannot capture final fixture") }

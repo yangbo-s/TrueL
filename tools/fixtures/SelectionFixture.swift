@@ -3,6 +3,12 @@ import AppKit
 @MainActor final class FixtureDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow!
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let menu = NSMenu()
+        let edit = NSMenuItem(title: "Edit", action: nil, keyEquivalent: "")
+        edit.submenu = NSMenu(title: "Edit")
+        edit.submenu?.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        menu.addItem(edit)
+        NSApp.mainMenu = menu
         window = NSWindow(contentRect: NSRect(x: 100, y: 200, width: 460, height: 240),
                           styleMask: [.titled, .closable], backing: .buffered, defer: false)
         window.title = "TrueL isolated selection fixture"

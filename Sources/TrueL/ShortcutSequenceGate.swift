@@ -1,6 +1,6 @@
 import Foundation
 
-/// Only configured, non-copy prefixes are delayed. Keeping the original events
+/// Native copy/select-all sequences bypass the gate. Keeping other original events
 /// allows an incomplete sequence to retain its native meaning (e.g. Ctrl+A).
 struct ShortcutSequenceGate<Event> {
     struct Decision {
@@ -17,7 +17,7 @@ struct ShortcutSequenceGate<Event> {
     var isPending: Bool { !pending.isEmpty }
 
     init(bindings: [ShortcutAction: ShortcutBinding]) {
-        matcher = ShortcutSequenceMatcher(bindings: bindings.filter { !$0.value.startsWithNativeCopy })
+        matcher = ShortcutSequenceMatcher(bindings: bindings.filter { !$0.value.passesThroughNativeEvents })
     }
 
     mutating func flush() -> [(pid_t, Event)] {

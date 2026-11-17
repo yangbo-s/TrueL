@@ -14,7 +14,7 @@
 | AIClient / AIProvider | 固定服务端点、鉴权、分页目录、文本生成和安全错误信息 |
 | CredentialStore / CredentialBrokerClient | 异步调用固定 XPC 凭据组件；测试用内存实现 |
 | CredentialCore / TrueLCredentialBroker | 双向认证、串行钥匙串访问与旧条目迁移；普通更新原样保留组件 |
-| ShortcutStore / ShortcutMonitor | 组合键与连续按键录制、冲突检查、全局匹配；非复制前缀暂存与失配回放 |
+| ShortcutStore / ShortcutMonitor | 组合键与连续按键录制、冲突检查、全局匹配；原生复制/全选透传，其余前缀暂存与失配回放 |
 | SelectionBridge / SelectionReplacementContext | 获取选区、来源有效性和安全替换 |
 | AppUpdater | Sparkle 控制器、更新菜单与自动检查偏好 |
 | Snapshot / PreviewAIClient | 内存配置、模拟响应和逐页窗口截图 |
@@ -55,7 +55,11 @@ OpenAI 改写通过 `generateRewrite` 复用 `OpenAITextStream`，已验证的 `
 
 `PopupSession.presentation` 在同一个 NSPanel 内切换 `quick`（仅结果）与 `workspace`（左右对照）；窗口尺寸分别记忆，设置页仍与工作窗互斥。`returnAction` 是键盘派发与绿色按钮样式的共同来源。普通打开强制 workspace，只有快捷输入进入 quick；快速失焦、关闭及进入设置会结束临时会话并取消未完成请求。原生编辑控件自行处理 IME 与 Shift+Return。
 
-`ShortcutSequenceGate` 只暂存配置的非复制序列前缀，在匹配时丢弃原事件并触发动作，超时、失配、鼠标点击、切换应用或监听暂停时归还原事件至原进程。回放带内部标记防止再次匹配，不记录输入文本。Command+C 开头的自定义序列保持透传。非复制序列需辅助功能与输入监控权限。快捷键 ID 与 v2 存储保留，`TrueL.shortcuts.quickDefaults.v1` 标记一次性默认值迁移，自定义与禁用不被复原。
+`ShortcutBinding.passesThroughNativeEvents` 将 Command+C 和 Command+A 开头的自定义序列交给同一个非阻塞 matcher，所有原按键立即透传。Command+A,A 的第一下执行原生全选，第二下读取并改写当前全文选区；单次全选不暂存，也不在超时后回放。`startsWithNativeCopy` 仍独立限制剪贴板回退，Command+A 不读取剪贴板兜底。见 [Command+A 延迟验收](SHORTCUT-LATENCY.md)。
+
+全选序列完成后异步给来源应用 50 ms 处理原生事件，再读取选区；该等待不作用于按键透传或单次全选。派发前再次核对来源 PID、暂停状态和 contextRevision；切应用、鼠标点击、配置变更或监听重启均使旧派发失效。
+
+`ShortcutSequenceGate` 暂存其他配置序列的前缀，在匹配时丢弃原事件并触发动作，超时、失配、鼠标点击、切换应用或监听暂停时归还原事件至原进程。回放带内部标记防止再次匹配，不记录输入文本。非复制序列需辅助功能与输入监控权限。快捷键 ID 与 v2 存储保留，`TrueL.shortcuts.quickDefaults.v1` 标记一次性默认值迁移，自定义与禁用不被复原。
 
 ## 语言与风格
 

@@ -62,7 +62,7 @@ python3 tools/check-layout.py artifacts/screenshots
 
 交互式快捷预览可直接运行 `APP_SNAPSHOT=/tmp/truel-workspace-review APP_SNAPSHOT_SCOPE=workspace-review build/TrueL.app/Contents/MacOS/TrueL`；它保留一张模拟快速结果窗口，供测试菜单、原生关闭、外部失焦及正常重开。结束后退出这个预览进程。
 
-已具备辅助功能和输入监控权限的开发终端可运行 `./tools/check-quick-workflows.sh`。它编译并启动独立测试窗口，真实发送 Ctrl+A+A / Ctrl+C+C，验证结果窗激活后的 AX 替换、超时归还按键、选区变化、来源关闭与只读拒写。仅操作自建窗口，完成后关闭，不读取用户文档和 Key。
+已具备辅助功能和输入监控权限的开发终端可运行 `./tools/check-quick-workflows.sh`。它编译并启动独立测试窗口，真实发送 Ctrl+A+A / Ctrl+C+C，验证结果窗激活后的 AX 替换、超时归还按键、选区变化、来源关闭与只读拒写；另外测量 5 次普通 Command+A 的即时全选，验证 10 次极快 Command+A,A 的全文捕获、全文替换及监听重启时取消旧派发。仅操作自建窗口，完成后关闭，不读取用户文档和 Key。运行前退出日常 TrueL，避免两份全局监听同时处理同一测试序列。
 
 图标母版保存在 `design/logo-refinements/native`，默认原生图标为 `Icon/AppIcon.icon`。`build.sh` 调用 `python3 tools/make-icons.py`，按内容哈希缓存编译产物。`Resources` 中保留可审查的资源，`python3 tools/make-icons.py --check` 验证是否与母版一致。顶栏复用母版的 ink/accent 两层透明 SVG，统一收紧视口并分别着色；Dock 图标仍使用完整底板与留白。
 

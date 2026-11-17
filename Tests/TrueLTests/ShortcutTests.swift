@@ -25,24 +25,31 @@ struct ShortcutTests {
         #expect(!ShortcutBinding(strokes: [stroke(18, .control), stroke(19, .control)]).startsWithNativeCopy)
         #expect(!ShortcutBinding(strokes: [stroke(8, .control), stroke(8, .control)]).startsWithNativeCopy)
         #expect(!ShortcutBinding(strokes: [stroke(8, [.command, .shift]), stroke(8, [.command, .shift])]).startsWithNativeCopy)
+        #expect(!ShortcutBinding(strokes: [stroke(0), stroke(0)]).startsWithNativeCopy)
         #expect(ShortcutBinding(strokes: [stroke(8), stroke(17)]).startsWithNativeCopy)
     }
 
-    @Test func repeatedCopyRequiresTwoSeparateKeyDowns() {
-        var matcher = ShortcutSequenceMatcher(bindings: [.selectionTranslation: .init(strokes: [stroke(8), stroke(8)])])
-        #expect(matcher.process(stroke(8), timestamp: 10) == nil)
-        #expect(matcher.process(stroke(8), timestamp: 10.1, isRepeat: true) == nil)
-        #expect(matcher.process(stroke(8), timestamp: 10.3) == .selectionTranslation)
-        #expect(matcher.process(stroke(8), timestamp: 10.4) == nil)
+    @Test(arguments: [UInt16(8), UInt16(0)])
+    func nativeSequencesRequireTwoSeparateKeyDowns(_ keyCode: UInt16) {
+        let action: ShortcutAction = keyCode == 8 ? .selectionTranslation : .selectionGrammar
+        let key = stroke(keyCode)
+        var matcher = ShortcutSequenceMatcher(bindings: [action: .init(strokes: [key, key])])
+        #expect(matcher.process(key, timestamp: 10) == nil)
+        #expect(matcher.process(key, timestamp: 10.1, isRepeat: true) == nil)
+        #expect(matcher.process(key, timestamp: 10.3) == action)
+        #expect(matcher.process(key, timestamp: 10.4) == nil)
     }
 
-    @Test func copySequenceCannotSpanTwoSourceApplications() {
-        var matcher = ShortcutSequenceMatcher(bindings: [.selectionTranslation: .init(strokes: [stroke(8), stroke(8)])])
-        #expect(matcher.process(stroke(8), timestamp: 10, sourcePID: 101) == nil)
+    @Test(arguments: [UInt16(8), UInt16(0)])
+    func nativeSequencesCannotSpanTwoSourceApplications(_ keyCode: UInt16) {
+        let action: ShortcutAction = keyCode == 8 ? .selectionTranslation : .selectionGrammar
+        let key = stroke(keyCode)
+        var matcher = ShortcutSequenceMatcher(bindings: [action: .init(strokes: [key, key])])
+        #expect(matcher.process(key, timestamp: 10, sourcePID: 101) == nil)
         #expect(matcher.sourcePID == 101)
-        #expect(matcher.process(stroke(8), timestamp: 10.2, sourcePID: 202) == nil)
+        #expect(matcher.process(key, timestamp: 10.2, sourcePID: 202) == nil)
         #expect(matcher.sourcePID == 202)
-        #expect(matcher.process(stroke(8), timestamp: 10.4, sourcePID: 202) == .selectionTranslation)
+        #expect(matcher.process(key, timestamp: 10.4, sourcePID: 202) == action)
         #expect(matcher.sourcePID == nil)
     }
 
@@ -67,15 +74,18 @@ struct ShortcutTests {
         #expect(matcher.process(stroke(19, .control), timestamp: 0.4) == .selectionTranslation)
     }
 
-    @Test func timeoutAndUnrelatedKeysCannotCompleteAStaleSequence() {
-        var matcher = ShortcutSequenceMatcher(bindings: [.selectionTranslation: .init(strokes: [stroke(8), stroke(8)])])
-        #expect(matcher.process(stroke(8), timestamp: 2) == nil)
-        #expect(matcher.process(stroke(8), timestamp: 3.1) == nil)
+    @Test(arguments: [UInt16(8), UInt16(0)])
+    func timeoutAndUnrelatedKeysCannotCompleteAStaleSequence(_ keyCode: UInt16) {
+        let action: ShortcutAction = keyCode == 8 ? .selectionTranslation : .selectionGrammar
+        let key = stroke(keyCode)
+        var matcher = ShortcutSequenceMatcher(bindings: [action: .init(strokes: [key, key])])
+        #expect(matcher.process(key, timestamp: 2) == nil)
+        #expect(matcher.process(key, timestamp: 3.1) == nil)
         #expect(matcher.process(stroke(0, []), timestamp: 3.2) == nil)
-        #expect(matcher.process(stroke(8), timestamp: 3.3) == nil)
-        #expect(matcher.process(stroke(8), timestamp: 3.5) == .selectionTranslation)
+        #expect(matcher.process(key, timestamp: 3.3) == nil)
+        #expect(matcher.process(key, timestamp: 3.5) == action)
         matcher.reset()
-        #expect(matcher.process(stroke(8), timestamp: 3.6) == nil)
+        #expect(matcher.process(key, timestamp: 3.6) == nil)
     }
 
     @Test func shorterAndLongerPrefixesAreRejectedWithoutOverwritingBindings() {

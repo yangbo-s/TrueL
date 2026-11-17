@@ -159,6 +159,82 @@ struct ShortcutSequenceGateTests {
     private let a = ShortcutStroke(keyCode: 0, modifiers: .control)
     private let x = ShortcutStroke(keyCode: 7, modifiers: .control)
 
+    @Test func nativeSelectAllEventsAreNeverBuffered() {
+        let selectAll = ShortcutStroke(keyCode: 0, modifiers: .command)
+        var gate = ShortcutSequenceGate<Int>(bindings: [.selectionGrammar: .init(strokes: [selectAll, selectAll])])
+        let first = gate.process(1, stroke: selectAll, down: true, isRepeat: false, timestamp: 1, sourcePID: 42)
+        #expect(!first.consumed && first.action == nil && first.replay.isEmpty)
+        #expect(!gate.process(2, stroke: selectAll, down: false, isRepeat: false, timestamp: 1.1, sourcePID: 42).consumed)
+        let second = gate.process(3, stroke: selectAll, down: true, isRepeat: false, timestamp: 1.2, sourcePID: 42)
+        // Native sequences are recognized by the same non-consuming matcher as Command+C,C.
+        #expect(!second.consumed && second.action == nil && second.replay.isEmpty)
+        let repeatAfterTrigger = gate.process(4, stroke: selectAll, down: true, isRepeat: true, timestamp: 1.3, sourcePID: 99)
+        #expect(!repeatAfterTrigger.consumed && repeatAfterTrigger.action == nil)
+        #expect(!gate.process(5, stroke: selectAll, down: false, isRepeat: false, timestamp: 1.4, sourcePID: 99).consumed)
+        #expect(gate.flush().isEmpty)
+    }
+
+    @Test func holdingCommandADoesNotTriggerOrBufferNativeRepeats() {
+        let selectAll = ShortcutStroke(keyCode: 0, modifiers: .command)
+        var gate = ShortcutSequenceGate<Int>(bindings: [.selectionGrammar: .init(strokes: [selectAll, selectAll])])
+        _ = gate.process(1, stroke: selectAll, down: true, isRepeat: false, timestamp: 1, sourcePID: 42)
+        for index in 2...5 {
+            let repeated = gate.process(index, stroke: selectAll, down: true, isRepeat: true,
+                                        timestamp: 1 + Double(index) / 10, sourcePID: 42)
+            #expect(!repeated.consumed && repeated.action == nil && repeated.replay.isEmpty)
+        }
+        #expect(!gate.process(6, stroke: selectAll, down: false, isRepeat: false, timestamp: 1.6, sourcePID: 42).consumed)
+        #expect(gate.flush().isEmpty)
+    }
+
+    @Test func commandATimeoutMismatchAndResetDoNotReplaySelectAll() {
+        let selectAll = ShortcutStroke(keyCode: 0, modifiers: .command)
+        var gate = ShortcutSequenceGate<Int>(bindings: [.selectionGrammar: .init(strokes: [selectAll, selectAll])])
+        _ = gate.process(1, stroke: selectAll, down: true, isRepeat: false, timestamp: 1, sourcePID: 42)
+        let expired = gate.process(2, stroke: selectAll, down: true, isRepeat: false, timestamp: 2.1, sourcePID: 42)
+        #expect(!expired.consumed && expired.action == nil && expired.replay.isEmpty)
+        let mismatch = gate.process(3, stroke: x, down: true, isRepeat: false, timestamp: 2.2, sourcePID: 42)
+        #expect(!mismatch.consumed && mismatch.action == nil && mismatch.replay.isEmpty)
+        let restarted = gate.process(4, stroke: selectAll, down: true, isRepeat: false, timestamp: 2.3, sourcePID: 42)
+        #expect(!restarted.consumed && restarted.action == nil)
+        #expect(gate.flush().isEmpty)
+        #expect(gate.process(5, stroke: selectAll, down: true, isRepeat: false, timestamp: 2.4, sourcePID: 42).action == nil)
+    }
+
+    @Test func commandASequenceCannotCrossApplications() {
+        let selectAll = ShortcutStroke(keyCode: 0, modifiers: .command)
+        var gate = ShortcutSequenceGate<Int>(bindings: [.selectionGrammar: .init(strokes: [selectAll, selectAll])])
+        _ = gate.process(1, stroke: selectAll, down: true, isRepeat: false, timestamp: 1, sourcePID: 42)
+        let switched = gate.process(2, stroke: selectAll, down: true, isRepeat: false, timestamp: 1.2, sourcePID: 99)
+        #expect(!switched.consumed && switched.action == nil && switched.replay.isEmpty)
+        let returned = gate.process(3, stroke: selectAll, down: true, isRepeat: false, timestamp: 1.4, sourcePID: 42)
+        #expect(!returned.consumed && returned.action == nil && returned.replay.isEmpty)
+    }
+
+    @Test func commandASequenceContinuationsPassThroughLikeNativeCopy() {
+        let selectAll = ShortcutStroke(keyCode: 0, modifiers: .command)
+        let b = ShortcutStroke(keyCode: 11, modifiers: .command)
+        let c = ShortcutStroke(keyCode: 8, modifiers: .command)
+        var gate = ShortcutSequenceGate<Int>(bindings: [.selectionGrammar: .init(strokes: [selectAll, b, c])])
+        #expect(!gate.process(1, stroke: selectAll, down: true, isRepeat: false, timestamp: 1, sourcePID: 42).consumed)
+        #expect(!gate.process(2, stroke: selectAll, down: false, isRepeat: false, timestamp: 1.1, sourcePID: 42).consumed)
+        #expect(!gate.process(3, stroke: b, down: true, isRepeat: false, timestamp: 1.2, sourcePID: 42).consumed)
+        #expect(!gate.process(4, stroke: b, down: false, isRepeat: false, timestamp: 1.3, sourcePID: 42).consumed)
+        let mismatch = gate.process(5, stroke: x, down: true, isRepeat: false, timestamp: 1.4, sourcePID: 42)
+        #expect(!mismatch.consumed && mismatch.action == nil)
+        #expect(mismatch.replay.isEmpty)
+        #expect(gate.flush().isEmpty)
+    }
+
+    @Test(arguments: [ShortcutModifiers.control, [.command, .shift], [.command, .option]])
+    func onlyUnmodifiedCommandAPrefixPassesThrough(_ modifiers: ShortcutModifiers) {
+        let otherA = ShortcutStroke(keyCode: 0, modifiers: modifiers)
+        var gate = ShortcutSequenceGate<Int>(bindings: [.selectionGrammar: .init(strokes: [otherA, otherA])])
+        let first = gate.process(1, stroke: otherA, down: true, isRepeat: false, timestamp: 1, sourcePID: 42)
+        #expect(first.consumed && first.action == nil && first.replay.isEmpty)
+        #expect(gate.flush().map { $0.1 } == [1])
+    }
+
     @Test func doubleAIsConsumedWithNoNativeCursorMovementAndOneTrigger() {
         var gate = ShortcutSequenceGate<Int>(bindings: ShortcutBinding.defaults)
         let first = gate.process(1, stroke: a, down: true, isRepeat: false, timestamp: 1, sourcePID: 42)

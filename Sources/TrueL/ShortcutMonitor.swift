@@ -2,7 +2,7 @@ import AppKit
 import Carbon.HIToolbox
 import Observation
 
-/// Carbon handles ordinary chords. The event tap preserves native copy sequences
+/// Carbon handles ordinary chords. The event tap passes through native copy/select-all sequences
 /// and holds other configured prefixes so they cannot destroy a selection.
 @MainActor
 final class GlobalShortcutMonitor {
@@ -34,6 +34,8 @@ final class GlobalShortcutMonitor {
     private static let replayMarker: Int64 = 0x5452554c534551
     private var matcher = ShortcutSequenceMatcher(bindings: [:])
     private var sequenceClipboardChangeCount: Int?
+    private var contextRevision: UInt = 0
+    private static let nativeSelectionDelay: Duration = .milliseconds(50)
     private static let signature: OSType = 0x5452554c
 
     init(store: ShortcutStore, permissions: SystemPermissions, onTrigger: @escaping (ShortcutAction) -> Void) {
@@ -126,7 +128,7 @@ final class GlobalShortcutMonitor {
         lastPermission = granted
         unregisterHotKeys()
         let observed = bindings.filter { $0.value.needsInputMonitoring }
-        matcher = ShortcutSequenceMatcher(bindings: observed.filter { $0.value.startsWithNativeCopy })
+        matcher = ShortcutSequenceMatcher(bindings: observed.filter { $0.value.passesThroughNativeEvents })
         gate = ShortcutSequenceGate(bindings: observed)
         sequenceClipboardChangeCount = nil
         clipboardChangedDuringSequence = false
@@ -161,7 +163,7 @@ final class GlobalShortcutMonitor {
         }
         if !accessibility {
             for (action, binding) in sequences where !binding.startsWithNativeCopy {
-                store.registrationErrors[action] = "需要辅助功能权限以保留原选区。"
+                store.registrationErrors[action] = "需要辅助功能权限以读取并处理选区。"
             }
         }
         if bindings.isEmpty { store.status = "未设置全局快捷键" }
@@ -277,8 +279,16 @@ final class GlobalShortcutMonitor {
     }
 
     private func trigger(_ action: ShortcutAction, sourcePID: pid_t, clipboardChanged: Bool) {
+        let selectsAll = store.bindings[action]?.startsWithNativeSelectAll == true
+        let revision = contextRevision
         Task { @MainActor [weak self] in
-            guard let self, self.running, !self.store.isRecording, !self.isPaused(),
+            // The source app processes native select-all after the tap returns.
+            // Only a completed sequence defers capture; individual keys never wait.
+            if selectsAll {
+                do { try await Task.sleep(for: Self.nativeSelectionDelay) } catch { return }
+            }
+            guard let self, self.running, self.contextRevision == revision,
+                  !self.store.isRecording, !self.isPaused(),
                   NSWorkspace.shared.frontmostApplication?.processIdentifier == sourcePID else { return }
             self.clipboardChangedDuringSequence = clipboardChanged
             self.onTrigger(action)
@@ -303,6 +313,7 @@ final class GlobalShortcutMonitor {
     }
 
     private func resetSequence() {
+        contextRevision &+= 1
         sequenceTimer?.invalidate()
         sequenceTimer = nil
         replay(gate.flush())

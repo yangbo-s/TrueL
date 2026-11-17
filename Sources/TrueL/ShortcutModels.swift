@@ -79,6 +79,16 @@ struct ShortcutBinding: Codable, Equatable, Sendable {
         strokes.first == ShortcutStroke(keyCode: 8, modifiers: .command)
     }
 
+    var startsWithNativeSelectAll: Bool {
+        strokes.first == ShortcutStroke(keyCode: 0, modifiers: .command)
+    }
+
+    /// Copy and select-all must reach the source app while a sequence is recognized.
+    /// Clipboard fallback remains exclusive to startsWithNativeCopy.
+    var passesThroughNativeEvents: Bool {
+        startsWithNativeCopy || startsWithNativeSelectAll
+    }
+
     func conflicts(with other: Self) -> Bool {
         guard !strokes.isEmpty, !other.strokes.isEmpty else { return false }
         return strokes.starts(with: other.strokes) || other.strokes.starts(with: strokes)
