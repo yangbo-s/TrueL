@@ -40,6 +40,8 @@ MOD-001 / IF-001：`TranslationOutput` 负责按原文判定保护范围、筛�
 
 实现追踪：REQ-001/002/003 → [TranslationOutput.swift](../Sources/TrueL/TranslationOutput.swift) / [LanguageEngine.swift](../Sources/TrueL/LanguageEngine.swift) → [TranslationOutputTests.swift](../Tests/TrueLTests/TranslationOutputTests.swift) / [TranslationLatencyTests.swift](../Tests/TrueLTests/TranslationLatencyTests.swift)。变更说明见 [CHANGELOG.md](../CHANGELOG.md)。完整日志位于 `artifacts/translation-output/`，生成证据不纳入 Git。
 
+后续已将该修复发布为 0.5.5 / build 19；正式安装包、签名更新源与公开验收见 [0.5.5 发布记录](RELEASE-0.5.5.md)。
+
 ## 证据边界与评分：95 / 100
 
 实网检查仅覆盖当前 GPT-6 Luna 的普通段落和 JSON 样例，不能据此承诺所有模型始终遵循格式。解析器只处理已确认的单一 `source` 字符串外壳；其他包装字段与结构化原文的额外包装保持原样。疑似包装响应会等待完整结果，普通文本的首段时序由回归测试保证，未做新的延迟统计。
