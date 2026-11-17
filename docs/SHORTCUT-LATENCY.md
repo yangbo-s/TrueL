@@ -12,7 +12,7 @@ IN-092：按键 keyCode、精确修饰键、单调时间戳（秒）、来源 PI
 OUT-092：原按键立即透传；序列完成后异步派发既有 selectionGrammar 动作，并读取当前全选文字。原生全选不可用或选区为空时，沿用既有取词错误，不回退剪贴板。
 CON-092：复用 Swift/AppKit、当前签名和权限，不改变默认快捷键、模型调用、凭据组件或替换校验。系统测试仅使用自建窗口，不发送真实 AI 请求。
 ASM-092：用户已确认第一次立即全选，第二次改写全选后的全文；这与 Command+C,C 先复制、再翻译的识别方式一致。
-OOS-092：不保留全选前的局部选区，不缩短连按时间，不发布远端版本；本地构建并安装验收后的修复。
+OOS-092：不保留全选前的局部选区，不缩短连按时间。本地构建并安装验收后的修复；用户随后要求直接推送 main 并发布新包，发布过程见 [0.5.4 发布验收](RELEASE-0.5.4.md)。
 
 ADR-092：将 Command+A 开头的序列纳入已有原生复制序列的非阻塞匹配路径。缩短超时仍会延迟普通全选；在第一下按键同步读取 AX 选区会引入跨进程等待，且与确认的全文语义不符，因此不采用。
 MOD-092 / IF-092：ShortcutBinding 定义透传序列，ShortcutSequenceGate 排除这些序列，GlobalShortcutMonitor 复用现有非阻塞 matcher。startsWithNativeCopy 仍独立控制剪贴板回退，不扩展到 Command+A。
@@ -35,7 +35,7 @@ MOD-092 / IF-092：ShortcutBinding 定义透传序列，ShortcutSequenceGate 排
 
 证据目录：`artifacts/shortcut-latency/`（不提交），包含 `tests.log`、`after/result.log`、`build.log`、`install.log`、`installed-test.log` 与 `installation-verification.json`。网格检查、差异空白检查和测试脚本语法检查通过。系统 fixture 的输入法日志不影响断言结果；Swift 编译无警告。
 
-交付：生产构建及固定身份签名检查通过，已通过 `./tools/install-local.sh` 安装到 `/Applications/TrueL.app` 并启动。安装后二进制与构建产物一致，凭据 broker 未变。快速改写已设为 Command+A,A，另外四项自定义快捷键回读确认保留。此次为本机修复，版本仍为 0.5.3 / build 17，未发布远端版本。测试窗口已关闭，应用已回到正常工作窗口。
+本机修复验收：生产构建及固定身份签名检查通过，已通过 `./tools/install-local.sh` 安装到 `/Applications/TrueL.app` 并启动。安装后二进制与构建产物一致，凭据 broker 未变。快速改写已设为 Command+A,A，另外四项自定义快捷键回读确认保留。该阶段测试版本仍为 0.5.3 / build 17；后续正式版本递增至 0.5.4 / 18，交付记录见上述发布验收。测试窗口已关闭，应用已回到正常工作窗口。
 
 ## 证据评分
 
