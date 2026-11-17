@@ -26,7 +26,7 @@ MOD-095：版本与更新记录 → `tools/prepare-release.py` → 签名 DMG / 
 | TC-096 | REQ-096 / 发布验收 / P1 | 正常直推 main，建立正式 Release，公开下载并比较字节与摘要，核对标签 | 通过：正式最新 Release 含 DMG 与 SHA256SUMS；公开下载逐字节一致，摘要及 Ed25519 验签通过；标签与源码提交一致；`public-release-check.log`、`public-release.json` |
 | TC-097a | REQ-097 / 集成 / P1 | 隔离宿主检测旧 build、当前 build 及被篡改的本地 feed | 通过：build 16、17 发现 18，18 显示最新，篡改 feed 被拒绝；`local-update-check.log`、`local-update-results.json` |
 | TC-097b | REQ-097 / 集成 / P1 | 固定组件跨两次实际 Sparkle 安装、重启读取隔离测试凭据；拒绝错误身份 | 通过：`credential-continuity.log`；`artifacts/credential-continuity/truel-credential-continuity-hc4kvcv4/result.json` |
-| TC-097c | REQ-097 / 发布验收 / P1 | 公开 feed 字节与签名核对；真实 Sparkle 从公开地址发现 build 18 | 待执行 |
+| TC-097c | REQ-097 / 发布验收 / P1 | 公开 feed 字节与签名核对；真实 Sparkle 从公开地址发现 build 18 | 通过：原地址普通和压缩响应均与签名 feed 一致；build 16、17 发现 18，18 显示最新；日常 TrueL 的检查更新窗口显示 0.5.4 可用；`public-update-check.log`、`public-update-results.json`、`public-ui-check.json` |
 
 功能验收见 [Command+A 延迟修复](SHORTCUT-LATENCY.md)：177 项测试、10 轮双 A 捕获与完整替换、本机安装后 3 次单次全选已通过。本轮只调整发布元数据，复用其功能证据；补测新版本关于页和发布链路。
 
@@ -36,10 +36,28 @@ MOD-095：版本与更新记录 → `tools/prepare-release.py` → 签名 DMG / 
 
 安装包：`build/releases/0.5.4/TrueL-0.5.4-arm64.dmg`，2,890,214 字节。SHA-256：`92fac7fb892c6a67b856b4dd571719a95ded673620d802216daba1e16963cc72`。
 
-本轮证据目录为 `artifacts/release-0.5.4/`（不提交）。打包工具出现既有 hdiutil 子命令弃用提示，实际创建、挂载、内容检查及卸载均通过。公开交付记录、限制与最终 100 分制证据评分在实际验证后补齐。
+本轮证据目录为 `artifacts/release-0.5.4/`（不提交）。打包工具出现既有 hdiutil 子命令弃用提示，实际创建、挂载、内容检查及卸载均通过。
 
 ## 公开交付
 
 源码提交 `8e5a1a615abcf3421c01e3d1f131c0c0a21f9373` 已正常直推 `origin/main`，正式标签 `v0.5.4` 指向同一提交。[TrueL 0.5.4](https://github.com/yangbo-s/TrueL/releases/tag/v0.5.4) 为最新正式版，包含 [DMG](https://github.com/yangbo-s/TrueL/releases/download/v0.5.4/TrueL-0.5.4-arm64.dmg) 与 [SHA256SUMS](https://github.com/yangbo-s/TrueL/releases/download/v0.5.4/SHA256SUMS)。公开下载的字节、摘要和更新签名已验证。
 
-签名 appcast 已原样复制到 `updates/appcast.xml`，待推送后验证公开更新链路。
+签名 appcast 已原样复制到 `updates/appcast.xml`，提交 `07cc414` 已直推 main。发布后的首次真实 Sparkle 检查仍返回 build 17；用户同时报告 “up to date”。对原地址分别请求普通和压缩响应，确认普通响应为 18，gzip 响应仍为 17，响应头为 `Cache-Control: max-age=300`、`Vary: Authorization,Accept-Encoding`。请求再验证仍命中旧的压缩 CDN 缓存；这是公开缓存传播延迟，未用更换地址或跳过签名来掩盖失败。证据为 `public-available-initial.log`、`public-feed-headers.txt`、`public-feed-compressed-headers.txt` 与对应下载内容。
+
+2026-11-16 20:47:38（America/New_York）原地址压缩响应刷新为 build 18，与本地签名文件逐字节一致。随后真实 Sparkle 的三项公开检查全部通过；在日常 `/Applications/TrueL.app` 菜单中重新点击「检查更新…」，窗口显示 “TrueL 0.5.4 is now available—you have 0.5.3”，并提供 Install Update 按钮。证据为 `public-cache-propagation.json`、`public-update-check.log` 和 `public-ui-check.json`。已把压缩响应核对与真实入口确认补入发布指南。
+
+本机日常应用已包含此次快捷键修复，其本机修复版仍显示 0.5.3；本轮正式包提供 0.5.4。当前使用既有固定自签证书和 Sparkle 更新签名，未在第二台干净机器上复核首次安装或执行正式包替换；实际安装及重启回归使用隔离 fixture。快捷键的来源应用响应及 Jump 端到端限制见功能验收文档。
+
+REQ-095～097 / AC-095～097 均通过；源码、正式标签、安装包和签名更新源已公开验证，没有覆盖历史资产或强推分支。
+
+## 证据评分
+
+| 项目 | 得分 | 证据、扣分与改进建议 |
+| --- | --- | --- |
+| 需求与验收覆盖 | 25 / 25 | main、标签、DMG、摘要和更新源均回读；实际应用已发现 0.5.4。 |
+| 功能正确性与边界 | 24 / 25 | 快捷键功能回归、旧版/当前版检测、篡改拒绝、两次实际升级及凭据认证通过；扣 1 分：全选后取词仍依赖来源应用正常响应，重载应用应另测。 |
+| 测试充分性与结果 | 17 / 20 | 177 项测试、7 项打包测试、2 张新版本快照、公开包与更新验证、实际应用提示均通过；扣 3 分：未在第二台干净机器安装正式包，未测 Jump 端到端和第三方应用矩阵。 |
+| 架构、接口与扩展性 | 10 / 10 | 复用既有发布、签名及更新流程，没有新接口或依赖。 |
+| 代码质量、安全与维护 | 10 / 10 | 固定组件不变，正常快进推送；隔离测试数据清理；缓存传播失败保留证据并复验。 |
+| 文档与交付完整性 | 10 / 10 | 更新记录、需求矩阵、证据与限制齐全；正式下载及应用内更新均可用。 |
+| 合计 | **96 / 100** | P1 验收均通过，无未解除的发布阻塞。 |

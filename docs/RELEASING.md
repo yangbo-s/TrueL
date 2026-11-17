@@ -42,6 +42,8 @@ gh release create v0.3.0 --target main --title 'TrueL 0.3.0' \
 
 应用的 feed 地址为 `https://raw.githubusercontent.com/yangbo-s/TrueL/main/updates/appcast.xml`。最后从公开地址下载 feed 并验证签名，使用应用里的「检查更新…」验证实际结果。
 
+公开 feed 还需用 `curl --compressed` 核对：GitHub CDN 的普通和 gzip 响应可能暂时命中不同版本，0.5.4 发布时实际观察到 `Cache-Control: max-age=300`。若普通下载已更新、Sparkle 仍返回旧版，保留响应头和失败证据，等待原地址的压缩缓存刷新后重跑真实 Sparkle 检查。不要用附加随机查询参数的地址替代正式地址验收；只有实际更新入口发现新 build 才算发布完成。
+
 ## 签名与系统确认
 
 当前发布使用固定自签证书；首次安装可能需要在 macOS「隐私与安全性」中确认打开。保持 bundle identifier、证书与安装位置稳定有助于权限延续。Sparkle 的 Ed25519 签名用于验证更新包和 feed。
