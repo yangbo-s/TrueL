@@ -23,7 +23,7 @@ MOD-095：版本与更新记录 → `tools/prepare-release.py` → 签名 DMG / 
 | --- | --- | --- | --- |
 | TC-095a | REQ-095 / 回归 / P1 | 完整测试、网格、打包契约；核对版本及浅深色关于页 | 通过：177 项 / 20 套件，10.679 秒；网格通过，打包 3 项及凭据打包 4 项通过；关于页浅深色快照通过 |
 | TC-095b | REQ-095、096 / 集成 / P1 | 构建签名安装包、挂载检查内容及签名，DMG 与 feed 验签 | 通过：0.5.4 / 18；挂载后 195 项一致，固定代码签名、DMG 与 feed Ed25519 验签通过；`package.log`、`package-metadata.json` |
-| TC-096 | REQ-096 / 发布验收 / P1 | 正常直推 main，建立正式 Release，公开下载并比较字节与摘要，核对标签 | 待执行 |
+| TC-096 | REQ-096 / 发布验收 / P1 | 正常直推 main，建立正式 Release，公开下载并比较字节与摘要，核对标签 | 通过：正式最新 Release 含 DMG 与 SHA256SUMS；公开下载逐字节一致，摘要及 Ed25519 验签通过；标签与源码提交一致；`public-release-check.log`、`public-release.json` |
 | TC-097a | REQ-097 / 集成 / P1 | 隔离宿主检测旧 build、当前 build 及被篡改的本地 feed | 通过：build 16、17 发现 18，18 显示最新，篡改 feed 被拒绝；`local-update-check.log`、`local-update-results.json` |
 | TC-097b | REQ-097 / 集成 / P1 | 固定组件跨两次实际 Sparkle 安装、重启读取隔离测试凭据；拒绝错误身份 | 通过：`credential-continuity.log`；`artifacts/credential-continuity/truel-credential-continuity-hc4kvcv4/result.json` |
 | TC-097c | REQ-097 / 发布验收 / P1 | 公开 feed 字节与签名核对；真实 Sparkle 从公开地址发现 build 18 | 待执行 |
@@ -37,3 +37,9 @@ MOD-095：版本与更新记录 → `tools/prepare-release.py` → 签名 DMG / 
 安装包：`build/releases/0.5.4/TrueL-0.5.4-arm64.dmg`，2,890,214 字节。SHA-256：`92fac7fb892c6a67b856b4dd571719a95ded673620d802216daba1e16963cc72`。
 
 本轮证据目录为 `artifacts/release-0.5.4/`（不提交）。打包工具出现既有 hdiutil 子命令弃用提示，实际创建、挂载、内容检查及卸载均通过。公开交付记录、限制与最终 100 分制证据评分在实际验证后补齐。
+
+## 公开交付
+
+源码提交 `8e5a1a615abcf3421c01e3d1f131c0c0a21f9373` 已正常直推 `origin/main`，正式标签 `v0.5.4` 指向同一提交。[TrueL 0.5.4](https://github.com/yangbo-s/TrueL/releases/tag/v0.5.4) 为最新正式版，包含 [DMG](https://github.com/yangbo-s/TrueL/releases/download/v0.5.4/TrueL-0.5.4-arm64.dmg) 与 [SHA256SUMS](https://github.com/yangbo-s/TrueL/releases/download/v0.5.4/SHA256SUMS)。公开下载的字节、摘要和更新签名已验证。
+
+签名 appcast 已原样复制到 `updates/appcast.xml`，待推送后验证公开更新链路。

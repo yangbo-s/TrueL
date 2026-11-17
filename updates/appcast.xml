@@ -6,6 +6,17 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>TrueL</title>
         <item>
+            <title>0.5.4</title>
+            <pubDate>Mon, 16 Nov 2026 20:40:11 -0500</pubDate>
+            <sparkle:version>18</sparkle:version>
+            <sparkle:shortVersionString>0.5.4</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[- 修复自定义 Command+A,A 快速改写导致普通 Command+A 延迟一秒：第一下立即全选，第二下改写全选后的全文，采用与 Command+C,C 相同的非阻塞识别方式。
+]]></description>
+            <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.5.4/TrueL-0.5.4-arm64.dmg" length="2890214" type="application/octet-stream" sparkle:edSignature="dALImW89Sg7HEHFMevA5Gwk9mGODoeFtEauf+WeZjtwNZzPi0sdxLhS7yfWRo+3q8DYaT416DaO3Y0Hqg+pyBw=="/>
+        </item>
+        <item>
             <title>0.5.3</title>
             <pubDate>Sun, 15 Nov 2026 23:35:24 -0500</pubDate>
             <sparkle:version>17</sparkle:version>
@@ -30,24 +41,9 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 ]]></description>
             <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.5.2/TrueL-0.5.2-arm64.dmg" length="2870074" type="application/octet-stream" sparkle:edSignature="zZ8tLANpnFNajc1SeN0QfKrIvCSo8LDqKYhAxxO9BY+jTeirej4DunWMDn4/SRlSgsZnRVd58dAUW2Fih3MnBw=="/>
         </item>
-        <item>
-            <title>0.5.0</title>
-            <pubDate>Sun, 15 Nov 2026 21:46:26 -0500</pubDate>
-            <sparkle:version>14</sparkle:version>
-            <sparkle:shortVersionString>0.5.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[- 快速翻译与改写仅通过快捷键进入，关闭或点击外部后，重开回到左右对照页面。
-- 原文支持语言检测与手动选择，目标语言移至结果栏；支持互换语言并反向翻译。
-- 翻译和改写分别选择预设风格，替代追加要求输入框；风格切换从原文重新生成。
-- 复制、风格与替换集中在结果底栏，与模型和提交按钮对齐。
-- 下拉框共用等距布局与同款箭头，界面图标统一 SF Symbols 的尺寸、字重及单色渲染。
-]]></description>
-            <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.5.0/TrueL-0.5.0-arm64.dmg" length="2856228" type="application/octet-stream" sparkle:edSignature="mIk07kaEawKidGtoqQ8Qd2Yl+xK8Qatv8/ewUAeuR4PSLjm/Q1EevL0YpCcJBYsoaIvLYXT+BsgTfza4SoPCCw=="/>
-        </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: lT88cvetZ97ZCs+nOB5cZL5slZRjHWkxkzw/QpCLLaQ8EpuJHKHlc2CjLX/Y2MEsRN2UfJmeXsBvGqAgc2skBg==
-length: 3708
+edSignature: kvRsC4VGOu/er1TFh12nX7iG72KA5PHdpPG+qgVR5mWoin/EC7hs7Iz0h/VfMVfPqoiW6N3+LIrktKk+y6rYCA==
+length: 3373
 -->
