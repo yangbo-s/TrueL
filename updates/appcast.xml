@@ -6,6 +6,17 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>TrueL</title>
         <item>
+            <title>0.5.5</title>
+            <pubDate>Mon, 16 Nov 2026 23:32:53 -0500</pubDate>
+            <sparkle:version>19</sparkle:version>
+            <sparkle:shortVersionString>0.5.5</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[- 修复普通文本翻译偶尔带有 `{"source":"…"}` 包装的问题：澄清输入提示，完整解码误带的包装与换行，流式阶段不显示包装片段；保留原文自身的 JSON 和代码块。
+]]></description>
+            <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.5.5/TrueL-0.5.5-arm64.dmg" length="2896608" type="application/octet-stream" sparkle:edSignature="JNwAwerP8GpZ1EhVg1Dfw4iZlZIzNEYYK+vl+PkD1W5G85Od2nty6X1w7ule5QIutYtTzgQId4jXv5oE6DPhDw=="/>
+        </item>
+        <item>
             <title>0.5.4</title>
             <pubDate>Mon, 16 Nov 2026 20:40:11 -0500</pubDate>
             <sparkle:version>18</sparkle:version>
@@ -30,20 +41,9 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 ]]></description>
             <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.5.3/TrueL-0.5.3-arm64.dmg" length="2889887" type="application/octet-stream" sparkle:edSignature="pFql+O8HdO5HZ+9UMzac+XEzESpznowfF7MgE7MYZIWj0W/4lftPkiv7GKViOOvZcE3PB8UF2DKNy0KNj74sCw=="/>
         </item>
-        <item>
-            <title>0.5.2</title>
-            <pubDate>Sun, 15 Nov 2026 22:09:13 -0500</pubDate>
-            <sparkle:version>16</sparkle:version>
-            <sparkle:shortVersionString>0.5.2</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[- 顶栏标志缩至与 TrueL 字标相称的视觉字高，标志与文字间距收紧为 4 pt，继续保持组合居中。
-]]></description>
-            <enclosure url="https://github.com/yangbo-s/TrueL/releases/download/v0.5.2/TrueL-0.5.2-arm64.dmg" length="2870074" type="application/octet-stream" sparkle:edSignature="zZ8tLANpnFNajc1SeN0QfKrIvCSo8LDqKYhAxxO9BY+jTeirej4DunWMDn4/SRlSgsZnRVd58dAUW2Fih3MnBw=="/>
-        </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: kvRsC4VGOu/er1TFh12nX7iG72KA5PHdpPG+qgVR5mWoin/EC7hs7Iz0h/VfMVfPqoiW6N3+LIrktKk+y6rYCA==
-length: 3373
+edSignature: srDt+4sy4FKJOe22XZxpJ31+lzv+RKU7AhpOaXD1RzmbOlFvUnJgCOcT64/7+oYMf56L2/s1zRJhhw5Rk17jCg==
+length: 3462
 -->
